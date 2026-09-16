@@ -33,7 +33,7 @@
     }
 
     .header-top {
-      padding: 16px 24px;
+      padding: 12px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -47,7 +47,7 @@
       flex: 1;
     }
     .header h1 { font-size: 16px; font-weight: 600; letter-spacing: 0; }
-    .header .date { font-size: 12px; color: #666; }
+    .header .date { font-size: 12px; color: #666; display: none; }
     .day-select {
       background: #0d0d0d;
       border: 1px solid #2a2a2a;
@@ -66,6 +66,26 @@
     .day-select option {
       background: #1a1a1a;
       color: #e0e0e0;
+    }
+    .day-select.header-select {
+      display: none;
+    }
+
+    .workout-header-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .workout-header-section label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      margin-right: 8px;
     }
     .header-timer {
       font-size: 14px;
@@ -797,13 +817,7 @@
   <div class="header">
     <div class="header-top">
       <div class="header-left">
-        <select class="day-select" id="daySelect" onchange="switchDay(this.value)">
-          <option value="Upper A">Upper A</option>
-          <option value="Lower A">Lower A</option>
-          <option value="Upper B">Upper B</option>
-          <option value="Lower B">Lower B</option>
-        </select>
-        <div class="date" id="todayDate"></div>
+        <h1>💪 Workout</h1>
       </div>
       <div class="header-timer" id="workoutTimer" style="display:none;">0:00</div>
       <div class="header-right">
@@ -948,6 +962,7 @@ let workoutTimerInterval = null;
 const SEED = [
   { date: "2026-08-26", day: "Upper A", exercises: [
     { name: "Barbell Bench Press", type: "weighted", sets: [{w:155,r:9,rir:5},{w:185,r:5,rir:2},{w:185,r:4,rir:2}] },
+    { name: "Dumbbell Bench Press", type: "weighted", sets: [{w:75,r:8,rir:2},{w:75,r:7,rir:2},{w:75,r:6,rir:2}] },
     { name: "Bent-Over Rows", type: "weighted", sets: [{w:135,r:9,rir:1},{w:135,r:8,rir:2},{w:135,r:8,rir:0},{w:135,r:8,rir:0}] },
     { name: "Pull-ups", type: "weighted", sets: [{w:5,r:2,rir:1},{w:0,r:2,rir:1}] },
     { name: "Dumbbell Curls", type: "weighted", sets: [{w:30,r:11,rir:1},{w:30,r:9,rir:2}] },
@@ -987,17 +1002,15 @@ function showPage(pageName) {
 }
 
 function init() {
-  document.getElementById('todayDate').textContent = fmtDate(todayISO());
   loadSettings();
   loadData();
   loadProgressPrefs();
-  renderDaySelector();
   loadWorkout();
   renderWorkoutPage();
 }
 
 function renderDaySelector() {
-  const sel = document.getElementById('daySelect');
+  const sel = document.getElementById('daySelectInline');
   if (sel) sel.value = currentDay;
 }
 
@@ -1017,11 +1030,11 @@ function toggleWorkout() {
     workoutActive = true;
     const btn = document.getElementById('startBtn');
     const timerDisplay = document.getElementById('workoutTimer');
-    const daySelect = document.getElementById('daySelect');
+    const daySelect = document.getElementById('daySelectInline');
     btn.textContent = 'End Workout';
     btn.classList.add('active');
     timerDisplay.style.display = 'block';
-    daySelect.disabled = true;
+    if (daySelect) daySelect.disabled = true;
     workoutStartTime = Date.now();
     updateWorkoutTimer();
     workoutTimerInterval = setInterval(updateWorkoutTimer, 100);
@@ -1035,11 +1048,11 @@ function saveAndEndWorkout() {
   workoutActive = false;
   const btn = document.getElementById('startBtn');
   const timerDisplay = document.getElementById('workoutTimer');
-  const daySelect = document.getElementById('daySelect');
+  const daySelect = document.getElementById('daySelectInline');
   btn.textContent = 'Start Workout';
   btn.classList.remove('active');
   timerDisplay.style.display = 'none';
-  daySelect.disabled = false;
+  if (daySelect) daySelect.disabled = false;
   if (workoutTimerInterval) clearInterval(workoutTimerInterval);
   clearInterval(timer.intervalId);
   timer.running = false;
@@ -1055,11 +1068,11 @@ function discardWorkout() {
   workoutActive = false;
   const btn = document.getElementById('startBtn');
   const timerDisplay = document.getElementById('workoutTimer');
-  const daySelect = document.getElementById('daySelect');
+  const daySelect = document.getElementById('daySelectInline');
   btn.textContent = 'Start Workout';
   btn.classList.remove('active');
   timerDisplay.style.display = 'none';
-  daySelect.disabled = false;
+  if (daySelect) daySelect.disabled = false;
   if (workoutTimerInterval) clearInterval(workoutTimerInterval);
   clearInterval(timer.intervalId);
   timer.running = false;
@@ -1157,7 +1170,14 @@ function renderWorkoutPage() {
   const programDefs = PROGRAM[currentDay].exercises;
   const firstUncompleted = workoutActive ? findFirstUncompletedSet() : null;
 
-  let html = '';
+  let html = '<div class="workout-header-section">';
+  html += '<label for="daySelectInline">Today\'s Program:</label>';
+  html += '<select class="day-select" id="daySelectInline" onchange="switchDay(this.value)">';
+  html += '<option value="Upper A" ' + (currentDay === "Upper A" ? "selected" : "") + '>Upper A</option>';
+  html += '<option value="Lower A" ' + (currentDay === "Lower A" ? "selected" : "") + '>Lower A</option>';
+  html += '<option value="Upper B" ' + (currentDay === "Upper B" ? "selected" : "") + '>Upper B</option>';
+  html += '<option value="Lower B" ' + (currentDay === "Lower B" ? "selected" : "") + '>Lower B</option>';
+  html += '</select></div>';
   for (let exIdx = 0; exIdx < exData.length; exIdx++) {
     const ex = exData[exIdx];
     const progDef = programDefs[exIdx];
