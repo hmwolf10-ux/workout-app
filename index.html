@@ -781,7 +781,39 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="swapExerciseModal" style="display: none;">
+  <div class="modal" style="max-width: 500px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h2>Swap Exercise</h2>
+      <button class="modal-btn" onclick="closeSwapModal()" style="background: transparent; border: none; color: #e0e0e0; font-size: 24px; padding: 0; width: auto; min-width: auto;">×</button>
+    </div>
+    <div id="swapExerciseContent"></div>
+  </div>
+</div>
+
 <script>
+let externalExercises = [];
+
+// Load exercises from exercises.json
+fetch('exercises.json')
+  .then(response => response.json())
+  .then(data => {
+    externalExercises = data;
+    console.log('Loaded', data.length, 'exercises from database');
+  })
+  .catch(error => console.error('Could not load exercises.json:', error));
+
+function getExerciseAlternatives(exerciseName) {
+  if (!externalExercises.length) return [];
+  const exercise = externalExercises.find(ex => ex.name.toLowerCase() === exerciseName.toLowerCase());
+  if (!exercise || !exercise.primaryMuscles) return [];
+  const primaryMuscle = exercise.primaryMuscles[0];
+  return externalExercises
+    .filter(ex => ex.primaryMuscles && ex.primaryMuscles.includes(primaryMuscle) && ex.name !== exerciseName)
+    .slice(0, 5)
+    .map(ex => ex.name);
+}
+
 const EXERCISE_LIBRARY = {
   "Barbell Bench Press": { type: "weighted", repMin: 6, repMax: 8, rest: 150, compound: true, weightIncrement: 5, warmupThreshold: 75 },
   "Bent-Over Rows": { type: "weighted", repMin: 6, repMax: 8, rest: 150, compound: true, weightIncrement: 5, warmupThreshold: 75 },
@@ -1052,6 +1084,7 @@ function render() {
     const restSecs = exLib ? exLib.rest : 60;
     html += `<span>${progDef.sets} sets × ${repText} reps, ${restSecs}s rest</span>`;
     html += `<span class="set-controls">`;
+    html += `<button class="set-btn" onclick="swapExercise(${exIdx})" title="Swap exercise">⇄</button>`;
     html += `<button class="set-btn" onclick="addSet(${exIdx})">+</button>`;
     html += `<button class="set-btn" onclick="deleteSet(${exIdx})" ${ex.sets.length <= 1 ? 'disabled' : ''}>−</button>`;
     html += `</span></span></div>`;
@@ -1809,6 +1842,47 @@ function importWorkoutData(event) {
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+let swapExerciseIndex = null;
+
+function swapExercise(exIdx) {
+  swapExerciseIndex = exIdx;
+  const exData = workoutData[`${todayISO()}-${currentDay}`];
+  const currentName = exData[exIdx].name;
+  const alternatives = getExerciseAlternatives(currentName);
+
+  let html = `<p style="color: #999; margin-bottom: 16px;">Current: <strong>${currentName}</strong></p>`;
+
+  if (alternatives.length === 0) {
+    html += `<p style="color: #666;">No alternatives found in database for this exercise.</p>`;
+  } else {
+    html += `<p style="color: #999; margin-bottom: 12px;">Select an alternative that targets the same muscle group:</p>`;
+    html += `<div style="display: grid; gap: 8px;">`;
+    alternatives.forEach(alt => {
+      html += `<button class="modal-btn" onclick="performExerciseSwap('${alt}')" style="text-align: left; background: #0d0d0d; border: 1px solid #2a2a2a;">`;
+      html += `${alt}`;
+      html += `</button>`;
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('swapExerciseContent').innerHTML = html;
+  document.getElementById('swapExerciseModal').style.display = 'flex';
+}
+
+function closeSwapModal() {
+  document.getElementById('swapExerciseModal').style.display = 'none';
+  swapExerciseIndex = null;
+}
+
+function performExerciseSwap(newExerciseName) {
+  if (swapExerciseIndex === null) return;
+  const exData = workoutData[`${todayISO()}-${currentDay}`];
+  exData[swapExerciseIndex].name = newExerciseName;
+  persistData();
+  closeSwapModal();
+  render();
 }
 
 init();
