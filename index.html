@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Workout Tracker</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -614,6 +616,115 @@
       .header { padding: 12px 16px; }
       .day-select { font-size: 14px; }
     }
+
+    @media (max-width: 380px) {
+      body {
+        font-size: 13px;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      }
+      .container {
+        padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+      }
+      .header {
+        padding: 8px 12px;
+        padding-top: max(8px, env(safe-area-inset-top));
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-left: max(12px, env(safe-area-inset-left));
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .header-left {
+        flex: 1 1 100%;
+        gap: 8px;
+      }
+      .header-right {
+        flex: 1 1 auto;
+        gap: 4px;
+      }
+      .start-btn {
+        padding: 5px 10px;
+        font-size: 11px;
+        white-space: normal;
+        flex: 1;
+        min-width: 60px;
+      }
+      .day-select {
+        padding: 5px 6px;
+        font-size: 13px;
+      }
+      .header-timer {
+        font-size: 12px;
+        min-width: 50px;
+      }
+      .content {
+        padding: 12px 16px;
+        padding-left: max(12px, env(safe-area-inset-left));
+        padding-right: max(12px, env(safe-area-inset-right));
+      }
+      .set-row, .set-header, .set-rec-row {
+        grid-template-columns: 24px 0.8fr 0.8fr 0.8fr auto;
+        gap: 3px;
+        padding: 6px 4px;
+      }
+      .input-field {
+        font-size: 11px;
+        padding: 4px 2px;
+        height: 24px;
+        line-height: 14px;
+      }
+      .checkbox {
+        width: 24px;
+        height: 24px;
+      }
+      .exercise-title {
+        font-size: 14px;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .exercise-meta {
+        font-size: 10px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      .set-controls {
+        gap: 2px;
+      }
+      .set-btn {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+      }
+      .timer-display {
+        padding: 10px 12px;
+        padding-left: max(12px, env(safe-area-inset-left));
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+        gap: 8px;
+      }
+      .timer-time {
+        font-size: 20px;
+        min-width: 60px;
+      }
+      .timer-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+      .modal {
+        border-radius: 12px;
+        padding: 16px;
+        margin: 16px;
+      }
+      .modal-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      .warmup-btn {
+        padding: 3px 12px;
+        font-size: 11px;
+        margin-bottom: 6px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -671,30 +782,47 @@
 </div>
 
 <script>
+const EXERCISE_LIBRARY = {
+  "Barbell Bench Press": { type: "weighted", repMin: 6, repMax: 8, rest: 150, compound: true, weightIncrement: 5, warmupThreshold: 75 },
+  "Bent-Over Rows": { type: "weighted", repMin: 6, repMax: 8, rest: 150, compound: true, weightIncrement: 5, warmupThreshold: 75 },
+  "Pull-ups": { type: "weighted", repMin: 5, repMax: 8, rest: 120, compound: true, weightIncrement: 2.5, warmupThreshold: 50 },
+  "Dumbbell Curls": { type: "weighted", repMin: 8, repMax: 10, rest: 60, weightIncrement: 2.5, warmupThreshold: 40 },
+  "Reverse Lunges (DB)": { type: "weighted", repMin: 8, repMax: 10, rest: 90, weightIncrement: 5, warmupThreshold: 60 },
+  "Hip Thrusts": { type: "weighted", repMin: 8, repMax: 12, rest: 120, compound: true, weightIncrement: 5, warmupThreshold: 75 },
+  "Seated Leg Curls": { type: "weighted", repMin: 12, repMax: 12, rest: 60, weightIncrement: 5, warmupThreshold: 60 },
+  "Hanging Leg Raises": { type: "bodyweight", repMin: 10, repMax: 12, rest: 60 },
+  "Incline Dumbbell Press": { type: "weighted", repMin: 8, repMax: 8, rest: 120, compound: true, weightIncrement: 2.5, warmupThreshold: 60 },
+  "Chin-ups": { type: "weighted", repMin: 5, repMax: 8, rest: 120, compound: true, weightIncrement: 2.5, warmupThreshold: 40 },
+  "Dumbbell Shoulder Press": { type: "weighted", repMin: 8, repMax: 8, rest: 120, compound: true, weightIncrement: 2.5, warmupThreshold: 50 },
+  "Lateral Raises": { type: "weighted", repMin: 12, repMax: 12, rest: 60, weightIncrement: 2.5, warmupThreshold: 40 },
+  "Bulgarian Split Squat (DB)": { type: "weighted", repMin: 8, repMax: 10, rest: 90, weightIncrement: 5, warmupThreshold: 60 },
+  "Calf Raises": { type: "weighted", repMin: 12, repMax: 15, rest: 60, weightIncrement: 5, warmupThreshold: 60 },
+};
+
 const PROGRAM = {
   "Upper A": { weekday: "Mon", exercises: [
-    { name: "Barbell Bench Press", type: "weighted", sets: 3, repMin: 6, repMax: 8, rest: 150, compound: true },
-    { name: "Bent-Over Rows", type: "weighted", sets: 3, repMin: 6, repMax: 8, rest: 150, compound: true },
-    { name: "Pull-ups", type: "weighted", sets: 2, repMin: 5, repMax: 8, rest: 120, compound: true },
-    { name: "Dumbbell Curls", type: "weighted", sets: 2, repMin: 8, repMax: 10, rest: 60 },
+    { name: "Barbell Bench Press", sets: 3 },
+    { name: "Bent-Over Rows", sets: 3 },
+    { name: "Pull-ups", sets: 2 },
+    { name: "Dumbbell Curls", sets: 2 },
   ]},
   "Lower A": { weekday: "Tue", exercises: [
-    { name: "Reverse Lunges (DB)", type: "weighted", sets: 3, repMin: 8, repMax: 10, rest: 90 },
-    { name: "Hip Thrusts", type: "weighted", sets: 3, repMin: 8, repMax: 10, rest: 120, compound: true },
-    { name: "Seated Leg Curls", type: "weighted", sets: 2, repMin: 12, repMax: 12, rest: 60 },
-    { name: "Hanging Leg Raises", type: "bodyweight", sets: 2, repMin: 10, repMax: 12, rest: 60 },
+    { name: "Reverse Lunges (DB)", sets: 3 },
+    { name: "Hip Thrusts", sets: 3 },
+    { name: "Seated Leg Curls", sets: 2 },
+    { name: "Hanging Leg Raises", sets: 2 },
   ]},
   "Upper B": { weekday: "Thu", exercises: [
-    { name: "Incline Dumbbell Press", type: "weighted", sets: 3, repMin: 8, repMax: 8, rest: 120, compound: true },
-    { name: "Chin-ups", type: "weighted", sets: 3, repMin: 5, repMax: 8, rest: 120, compound: true },
-    { name: "Dumbbell Shoulder Press", type: "weighted", sets: 3, repMin: 8, repMax: 8, rest: 120, compound: true },
-    { name: "Lateral Raises", type: "weighted", sets: 2, repMin: 12, repMax: 12, rest: 60 },
+    { name: "Incline Dumbbell Press", sets: 3 },
+    { name: "Chin-ups", sets: 3 },
+    { name: "Dumbbell Shoulder Press", sets: 3 },
+    { name: "Lateral Raises", sets: 2 },
   ]},
   "Lower B": { weekday: "Fri", exercises: [
-    { name: "Bulgarian Split Squat (DB)", type: "weighted", sets: 3, repMin: 8, repMax: 10, rest: 90 },
-    { name: "Hip Thrusts", type: "weighted", sets: 3, repMin: 10, repMax: 12, rest: 120, compound: true },
-    { name: "Seated Leg Curls", type: "weighted", sets: 2, repMin: 12, repMax: 12, rest: 60 },
-    { name: "Calf Raises", type: "weighted", sets: 2, repMin: 12, repMax: 15, rest: 60 },
+    { name: "Bulgarian Split Squat (DB)", sets: 3 },
+    { name: "Hip Thrusts", sets: 3 },
+    { name: "Seated Leg Curls", sets: 2 },
+    { name: "Calf Raises", sets: 2 },
   ]},
 };
 
@@ -792,6 +920,9 @@ function saveAndEndWorkout() {
   timerDisplay.style.display = 'none';
   daySelect.disabled = false;
   if (workoutTimerInterval) clearInterval(workoutTimerInterval);
+  clearInterval(timer.intervalId);
+  timer.running = false;
+  document.getElementById('timerDisplay').classList.remove('active');
   document.getElementById('endWorkoutModal').style.display = 'none';
   persistData();
   render();
@@ -809,6 +940,9 @@ function discardWorkout() {
   timerDisplay.style.display = 'none';
   daySelect.disabled = false;
   if (workoutTimerInterval) clearInterval(workoutTimerInterval);
+  clearInterval(timer.intervalId);
+  timer.running = false;
+  document.getElementById('timerDisplay').classList.remove('active');
   document.getElementById('endWorkoutModal').style.display = 'none';
   persistData();
   loadWorkout();
@@ -826,11 +960,14 @@ function updateWorkoutTimer() {
 function loadWorkout() {
   const key = `${todayISO()}-${currentDay}`;
   if (!workoutData[key]) {
-    workoutData[key] = PROGRAM[currentDay].exercises.map(ex => ({
-      name: ex.name,
-      type: ex.type,
-      sets: Array(ex.sets).fill(null).map(() => ({ w: null, r: null, rir: null, logged: false, recViewed: false }))
-    }));
+    workoutData[key] = PROGRAM[currentDay].exercises.map(progEx => {
+      const exLib = EXERCISE_LIBRARY[progEx.name];
+      return {
+        name: progEx.name,
+        type: exLib ? exLib.type : 'weighted',
+        sets: Array(progEx.sets).fill(null).map(() => ({ w: null, r: null, rir: null, logged: false, recViewed: false }))
+      };
+    });
   }
 }
 
@@ -867,8 +1004,11 @@ function isLastSetOfExercise(exIdx, setIdx) {
   return true;
 }
 
-function needsWarmup(weight) {
-  return weight !== null && weight > 75;
+function needsWarmup(exName, weight) {
+  if (weight === null) return false;
+  const ex = EXERCISE_LIBRARY[exName];
+  const threshold = ex && ex.warmupThreshold ? ex.warmupThreshold : 75;
+  return weight > threshold;
 }
 
 function toggleWarmup(btn) {
@@ -879,8 +1019,8 @@ function toggleWarmup(btn) {
   }
 }
 
-function getWarmupSets(targetWeight) {
-  if (!needsWarmup(targetWeight)) return null;
+function getWarmupSets(exName, targetWeight) {
+  if (!needsWarmup(exName, targetWeight)) return null;
   const light = Math.round(targetWeight * 0.5 / 5) * 5 || 45;
   const medium = Math.round(targetWeight * 0.7 / 5) * 5 || 65;
   return [
@@ -893,13 +1033,14 @@ function getWarmupSets(targetWeight) {
 function render() {
   const con = document.getElementById('content');
   const exData = workoutData[`${todayISO()}-${currentDay}`];
-  const exDefs = PROGRAM[currentDay].exercises;
+  const programDefs = PROGRAM[currentDay].exercises;
   const firstUncompleted = workoutActive ? findFirstUncompletedSet() : null;
 
   let html = '';
   for (let exIdx = 0; exIdx < exData.length; exIdx++) {
     const ex = exData[exIdx];
-    const def = exDefs[exIdx];
+    const progDef = programDefs[exIdx];
+    const exLib = EXERCISE_LIBRARY[ex.name];
     const lastPerf = findLastPerformance(ex.name);
     const lastWeekPerf = findLastWeekPerformance(ex.name);
 
@@ -907,15 +1048,17 @@ function render() {
     html += `<div class="exercise-title">`;
     html += `<span>${ex.name}</span>`;
     html += `<span class="exercise-meta">`;
-    html += `<span>${def.sets} sets × ${def.repMin ? def.repMin + '-' + def.repMax : 'max'} reps, ${def.rest}s rest</span>`;
+    const repText = exLib && exLib.repMin ? exLib.repMin + '-' + exLib.repMax : 'max';
+    const restSecs = exLib ? exLib.rest : 60;
+    html += `<span>${progDef.sets} sets × ${repText} reps, ${restSecs}s rest</span>`;
     html += `<span class="set-controls">`;
     html += `<button class="set-btn" onclick="addSet(${exIdx})">+</button>`;
     html += `<button class="set-btn" onclick="deleteSet(${exIdx})" ${ex.sets.length <= 1 ? 'disabled' : ''}>−</button>`;
     html += `</span></span></div>`;
 
-    const rec = getRecommendation(ex, def, 0, lastPerf);
-    if (def.compound && rec && needsWarmup(rec.w)) {
-      const warmups = getWarmupSets(rec.w);
+    const rec = getRecommendation(ex.name, 0, lastPerf);
+    if (exLib && exLib.compound && rec && needsWarmup(ex.name, rec.w)) {
+      const warmups = getWarmupSets(ex.name, rec.w);
       html += `<button class="warmup-btn" onclick="toggleWarmup(this)">${warmups.length} warm-up sets</button>`;
       html += `<div class="warmup-table" style="display:none;">`;
       html += `<div class="warmup-header"><div>#</div><div>LB</div><div>REPS</div><div></div></div>`;
@@ -938,7 +1081,7 @@ function render() {
 
     for (let setIdx = 0; setIdx < ex.sets.length; setIdx++) {
       const set = ex.sets[setIdx];
-      const rec = getRecommendation(ex, def, setIdx, lastPerf);
+      const rec = getRecommendation(ex.name, setIdx, lastPerf);
       const lastWeekSet = lastWeekPerf && setIdx < lastWeekPerf.sets.length ? lastWeekPerf.sets[setIdx] : null;
 
       html += `<div class="set-row">`;
@@ -989,12 +1132,15 @@ function render() {
       const hasReps = set.r !== null && set.r > 0;
       const hasWeight = ex.type === 'weighted' ? (set.w !== null && set.w > 0) : true;
       const canCheck = hasReps && hasWeight;
+      const isPR = set.logged && checkIfPR(ex.name, set.w, set.r);
+      const checkClass = isPR ? 'style="accent-color: #10b981;"' : '';
       html += `<input
         type="checkbox"
         class="checkbox"
         ${set.logged ? 'checked' : ''}
         ${canCheck && workoutActive ? '' : 'disabled'}
         onchange="toggleSetComplete(${exIdx}, ${setIdx}, this.checked)"
+        ${checkClass}
       >`;
       html += `</div>`;
 
@@ -1205,6 +1351,21 @@ function getLastWorkedDate(exName) {
   return null;
 }
 
+function checkIfPR(exName, weight, reps) {
+  if (weight === null || reps === null || reps <= 0) return false;
+  const lastPerf = findLastPerformance(exName);
+  if (!lastPerf) return true;
+  for (let set of lastPerf.sets) {
+    if (set.logged && set.r !== null && set.r > 0) {
+      const lastW = set.w || 0;
+      if (weight > lastW || (weight === lastW && reps > set.r)) {
+        return true;
+      }
+    }
+  }
+  return weight > 0 && reps > 0;
+}
+
 function findLastPerformance(exName) {
   let latest = null;
   let latestDate = null;
@@ -1271,8 +1432,10 @@ function findLastWeekPerformance(exName) {
   return null;
 }
 
-function getRecommendation(ex, def, setIdx, lastPerf) {
+function getRecommendation(exName, setIdx, lastPerf) {
   if (!lastPerf) return null;
+  const exLib = EXERCISE_LIBRARY[exName];
+  if (!exLib) return null;
 
   const prevSetIdx = setIdx - 1;
   const ls = prevSetIdx >= 0 ? lastPerf.sets[prevSetIdx] : lastPerf.sets[setIdx];
@@ -1281,7 +1444,7 @@ function getRecommendation(ex, def, setIdx, lastPerf) {
 
   const rir = ls.rir !== null ? ls.rir : 0;
 
-  if (ex.type === 'bodyweight') {
+  if (exLib.type === 'bodyweight') {
     const max = 15;
     if (rir < 1) {
       return { w: null, r: ls.r, rir: 0 };
@@ -1298,8 +1461,9 @@ function getRecommendation(ex, def, setIdx, lastPerf) {
     return { w: null, r: Math.min(ls.r + 2, max), rir: 1 };
   }
 
-  const min = def.repMin || 8;
-  const max = def.repMax || 12;
+  const min = exLib.repMin || 8;
+  const max = exLib.repMax || 12;
+  const incr = exLib.weightIncrement || 5;
 
   if (rir < 1) {
     return { w: ls.w, r: ls.r, rir: 0 };
@@ -1309,7 +1473,7 @@ function getRecommendation(ex, def, setIdx, lastPerf) {
   }
 
   if (ls.r >= max) {
-    return { w: ls.w + 5, r: min, rir: 1 };
+    return { w: ls.w + incr, r: min, rir: 1 };
   }
 
   if (rir < 4) {
@@ -1333,6 +1497,7 @@ function startTimer(sec) {
       clearInterval(timer.intervalId);
       timer.running = false;
       td.classList.remove('active');
+      playTimerAlert();
     }
   }, 1000);
 }
@@ -1341,6 +1506,24 @@ function updateTimerDisplay() {
   const m = Math.floor(timer.remaining / 60);
   const s = timer.remaining % 60;
   document.getElementById('timerTime').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function playTimerAlert() {
+  if (navigator.vibrate) {
+    navigator.vibrate([200, 100, 200]);
+  }
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.frequency.setValueAtTime(800, now);
+  osc.frequency.setValueAtTime(600, now + 0.15);
+  gain.gain.setValueAtTime(0.3, now);
+  gain.gain.setValueAtTime(0, now + 0.3);
+  osc.start(now);
+  osc.stop(now + 0.3);
 }
 
 function toggleTimer() {
@@ -1390,6 +1573,16 @@ function renderHistory() {
   html += `<span>lbs</span>`;
   html += `</div>`;
   html += `<div style="font-size: 11px; color: #666; margin-top: 8px; padding: 0 12px;">Used to calculate warmup recommendations (threshold: 75 lbs)</div>`;
+  html += `</div>`;
+
+  html += `<div style="margin-bottom: 24px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
+  html += `<div style="margin-bottom: 12px;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Backup & Restore</h3></div>`;
+  html += `<div style="display: flex; gap: 8px; flex-wrap: wrap;">`;
+  html += `<button class="modal-btn save" onclick="exportWorkoutData()" style="flex: 1; min-width: 120px;">Export as JSON</button>`;
+  html += `<button class="modal-btn" onclick="triggerImportFile()" style="flex: 1; min-width: 120px;">Import from File</button>`;
+  html += `<input type="file" id="importFileInput" accept=".json,.csv" style="display: none;" onchange="importWorkoutData(event)" />`;
+  html += `</div>`;
+  html += `<div style="font-size: 11px; color: #666; margin-top: 8px;">Download or upload your workout history</div>`;
   html += `</div>`;
 
   html += `<div style="margin-bottom: 24px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;">`;
@@ -1567,6 +1760,55 @@ function renderSessions(sessions) {
   }
   html += `</div>`;
   return html;
+}
+
+function exportWorkoutData() {
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    bodyWeight,
+    workoutData
+  };
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `workout-backup-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function triggerImportFile() {
+  document.getElementById('importFileInput').click();
+}
+
+function importWorkoutData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      if (backup.workoutData) {
+        workoutData = backup.workoutData;
+        if (backup.bodyWeight) bodyWeight = backup.bodyWeight;
+        persistData();
+        loadSettings();
+        loadWorkout();
+        render();
+        alert('Workout data imported successfully!');
+        closeHistory();
+      } else {
+        alert('Invalid backup file format');
+      }
+    } catch (err) {
+      alert('Error reading file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 
 init();
