@@ -6,6 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Workout Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -129,6 +130,19 @@
     .start-btn.active { background: #dc2626; }
     .start-btn.secondary { background: #2a2a2a; }
     .start-btn.secondary:hover { background: #333; }
+
+    .auth-btn {
+      padding: 6px 12px;
+      background: #666;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .auth-btn:hover { background: #777; }
 
     .content {
       flex: 1;
@@ -794,6 +808,7 @@
       <div class="header-timer" id="workoutTimer" style="display:none;">0:00</div>
       <div class="header-right">
         <button class="start-btn" id="startBtn" onclick="toggleWorkout()">Start Workout</button>
+        <button class="auth-btn" id="authBtn" onclick="handleAuth()" style="margin-left: 8px;">Sign in</button>
       </div>
     </div>
     <div class="nav-tabs">
@@ -842,6 +857,19 @@
 </div>
 
 <script>
+const SUPABASE_URL = 'https://dnruouguistgdvueajsk.sbClient.co';
+const SUPABASE_KEY = 'sb_publishable_mSciEZFOUB0-N6wkwxPBeA_ZxBjuGTr';
+
+let sbClient = null;
+try {
+  if (window.supabase) {
+    sbClient = window.sbClient.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+} catch (e) {
+  console.error('Supabase init error:', e);
+}
+
+let currentUser = null;
 let externalExercises = [];
 
 fetch('exercises.json')
@@ -2220,7 +2248,86 @@ function performExerciseSwap(newExerciseName) {
   renderWorkoutPage();
 }
 
+async function handleAuth() {
+  if (!sbClient) return alert('Supabase not loaded. Refresh the page.');
+  if (currentUser) {
+    await sbClient.auth.signOut();
+    currentUser = null;
+    document.getElementById('authBtn').textContent = 'Sign in';
+    workoutData = {};
+    render();
+  } else {
+    const { data, error } = await sbClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    });
+    if (error) console.error('Auth error:', error);
+  }
+}
+
+async function initAuth() {
+  if (!sbClient) return;
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (session?.user) {
+    currentUser = session.user;
+    document.getElementById('authBtn').textContent = 'Sign out';
+    await loadDataFromSupabase();
+  } else {
+    document.getElementById('authBtn').textContent = 'Sign in';
+  }
+}
+
+async function loadDataFromSupabase() {
+  if (!currentUser) return;
+  const { data, error } = await supabase
+    .from('workouts')
+    .select('*')
+    .eq('user_id', currentUser.id);
+  if (error) { console.error('Load error:', error); return; }
+  workoutData = {};
+  data?.forEach(row => {
+    workoutData[row.workout_key] = row.data;
+  });
+  localStorage.setItem('workoutData', JSON.stringify(workoutData));
+  render();
+}
+
+async function syncDataToSupabase() {
+  if (!currentUser) return;
+  for (const [key, data] of Object.entries(workoutData)) {
+    const { error } = await supabase
+      .from('workouts')
+      .upsert({ user_id: currentUser.id, workout_key: key, data }, { onConflict: 'user_id,workout_key' });
+    if (error) console.error('Sync error:', error);
+  }
+}
+
+function setupAuth() {
+  if (sbClient) {
+    sbClient.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        currentUser = session.user;
+        document.getElementById('authBtn').textContent = 'Sign out';
+        loadDataFromSupabase();
+      } else {
+        currentUser = null;
+        document.getElementById('authBtn').textContent = 'Sign in';
+      }
+    });
+    initAuth();
+  }
+}
+
 init();
+
+setTimeout(() => {
+  if (!sbClient && window.supabase) {
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    setupAuth();
+  } else if (sbClient) {
+    setupAuth();
+  }
+}, 500);
 </script>
 
 </body>
