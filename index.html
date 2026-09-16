@@ -902,6 +902,7 @@ function init() {
   document.getElementById('todayDate').textContent = fmtDate(todayISO());
   loadSettings();
   loadData();
+  loadProgressPrefs();
   renderDaySelector();
   loadWorkout();
   render();
@@ -1595,54 +1596,144 @@ function closeHistory() {
   modal.style.display = 'none';
 }
 
+let progressPrefs = {
+  streak: true, stats: true, prCards: true, curves: true,
+  oneRM: true, muscleGroup: true, volumeTrend: true, sessions: true,
+  weekly: true, volumeByType: true
+};
+
+function loadProgressPrefs() {
+  try {
+    const saved = localStorage.getItem('progressPrefs');
+    if (saved) progressPrefs = JSON.parse(saved);
+  } catch (e) {}
+}
+
+function saveProgressPrefs() {
+  try {
+    localStorage.setItem('progressPrefs', JSON.stringify(progressPrefs));
+  } catch (e) {}
+}
+
 function renderHistory() {
   const content = document.getElementById('historyContent');
+  loadProgressPrefs();
   let html = '';
 
-  html += `<div style="margin-bottom: 24px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
+  html += `<div style="margin-bottom: 20px; display: flex; gap: 6px; border-bottom: 1px solid #2a2a2a; padding-bottom: 12px;">`;
+  html += `<button onclick="switchProgressTab('view')" id="viewTab" class="modal-btn" style="background: #2563eb; color: white; flex: 1; padding: 8px; font-size: 12px;">View</button>`;
+  html += `<button onclick="switchProgressTab('customize')" id="customTab" class="modal-btn secondary" style="background: #2a2a2a; color: #888; flex: 1; padding: 8px; font-size: 12px;">Customize</button>`;
+  html += `</div>`;
+
+  html += `<div id="progressView" style="display: block;">`;
+
+  // Streak
+  if (progressPrefs.streak) html += renderStreakCard();
+
+  // Stats Grid
+  if (progressPrefs.stats) html += renderStatsGrid();
+
+  // PR Cards
+  if (progressPrefs.prCards) html += renderPRCards();
+
+  // Exercise Curves
+  if (progressPrefs.curves) html += renderExerciseCurves();
+
+  // Estimated 1RM
+  if (progressPrefs.oneRM) html += renderEstimated1RM();
+
+  // Muscle Group Distribution
+  if (progressPrefs.muscleGroup) html += renderMuscleGroupDist();
+
+  // Volume Trend
+  if (progressPrefs.volumeTrend) {
+    const volumeTrend = getVolumeTrend();
+    html += `<div style="margin-bottom: 16px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Total Volume Trend</h3>` + renderVolumeTrend(volumeTrend) + `</div>`;
+  }
+
+  // Sessions
+  if (progressPrefs.sessions) {
+    const sessions = getRecentSessions();
+    html += `<div style="margin-bottom: 16px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Latest Sessions</h3>` + renderSessions(sessions) + `</div>`;
+  }
+
+  // Weekly
+  if (progressPrefs.weekly) {
+    const weekly = getWeeklySummary();
+    html += `<div style="margin-bottom: 16px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Weekly Summary</h3>` + renderWeeklySummary(weekly) + `</div>`;
+  }
+
+  // Volume by Type
+  if (progressPrefs.volumeByType) {
+    const volumeByType = getVolumeByType();
+    html += `<div style="margin-bottom: 16px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Volume by Workout Type</h3>` + renderVolumeByType(volumeByType) + `</div>`;
+  }
+
+  html += `</div>`;
+
+  // Customize tab
+  html += `<div id="progressCustomize" style="display: none;">`;
+  html += `<div style="margin-bottom: 16px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
+  html += `<h3 style="color: #fff; font-size: 13px; margin: 0 0 12px 0;">Choose what to display:</h3>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.streak ? 'checked' : ''} onchange="togglePref('streak'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Workout Streak</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.stats ? 'checked' : ''} onchange="togglePref('stats'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Stats Grid (Sessions, Volume, Reps)</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.prCards ? 'checked' : ''} onchange="togglePref('prCards'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Personal Record Cards</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.curves ? 'checked' : ''} onchange="togglePref('curves'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Exercise Progression Curves</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.oneRM ? 'checked' : ''} onchange="togglePref('oneRM'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Estimated 1RM</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.muscleGroup ? 'checked' : ''} onchange="togglePref('muscleGroup'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Muscle Group Distribution</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.volumeTrend ? 'checked' : ''} onchange="togglePref('volumeTrend'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Total Volume Trend</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.sessions ? 'checked' : ''} onchange="togglePref('sessions'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Latest Sessions</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.weekly ? 'checked' : ''} onchange="togglePref('weekly'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Weekly Summary</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 0; cursor: pointer;"><input type="checkbox" ${progressPrefs.volumeByType ? 'checked' : ''} onchange="togglePref('volumeByType'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Volume by Workout Type</span></label>`;
+  html += `</div>`;
+
+  html += `<div style="margin-bottom: 16px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
   html += `<div class="settings-row" style="margin: 0;">`;
   html += `<label>Body Weight:</label>`;
   html += `<input type="number" value="${bodyWeight}" onblur="saveBodyWeight(this.value)" />`;
   html += `<span>lbs</span>`;
   html += `</div>`;
-  html += `<div style="font-size: 11px; color: #666; margin-top: 8px; padding: 0 12px;">Used to calculate warmup recommendations (threshold: 75 lbs)</div>`;
   html += `</div>`;
 
-  html += `<div style="margin-bottom: 24px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
-  html += `<div style="margin-bottom: 12px;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Backup & Restore</h3></div>`;
+  html += `<div style="margin-bottom: 16px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
+  html += `<div style="margin-bottom: 8px;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Backup & Restore</h3></div>`;
   html += `<div style="display: flex; gap: 8px; flex-wrap: wrap;">`;
   html += `<button class="modal-btn save" onclick="exportWorkoutData()" style="flex: 1; min-width: 120px;">Export as JSON</button>`;
   html += `<button class="modal-btn" onclick="triggerImportFile()" style="flex: 1; min-width: 120px;">Import from File</button>`;
   html += `<input type="file" id="importFileInput" accept=".json,.csv" style="display: none;" onchange="importWorkoutData(event)" />`;
   html += `</div>`;
-  html += `<div style="font-size: 11px; color: #666; margin-top: 8px;">Download or upload your workout history</div>`;
   html += `</div>`;
-
-  html += `<div style="margin-bottom: 24px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;">`;
-  html += `<h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Total Volume Trend</h3>`;
-  const volumeTrend = getVolumeTrend();
-  html += renderVolumeTrend(volumeTrend);
-  html += `</div>`;
-
-  html += `<div style="margin-bottom: 24px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;">`;
-  html += `<h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Best Lifts</h3>`;
-  const bestLifts = getBestLifts();
-  html += renderBestLifts(bestLifts);
-  html += `</div>`;
-
-  html += `<div style="margin-bottom: 24px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;">`;
-  html += `<h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Volume by Workout Type</h3>`;
-  const volumeByType = getVolumeByType();
-  html += renderVolumeByType(volumeByType);
-  html += `</div>`;
-
-  html += `<div style="margin-bottom: 24px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;">`;
-  html += `<h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Latest Sessions</h3>`;
-  const sessions = getRecentSessions();
-  html += renderSessions(sessions);
   html += `</div>`;
 
   content.innerHTML = html;
+}
+
+function switchProgressTab(tab) {
+  const view = document.getElementById('progressView');
+  const customize = document.getElementById('progressCustomize');
+  const viewTab = document.getElementById('viewTab');
+  const customTab = document.getElementById('customTab');
+
+  if (tab === 'view') {
+    view.style.display = 'block';
+    customize.style.display = 'none';
+    viewTab.style.background = '#2563eb';
+    viewTab.style.color = 'white';
+    customTab.style.background = '#2a2a2a';
+    customTab.style.color = '#888';
+  } else {
+    view.style.display = 'none';
+    customize.style.display = 'block';
+    viewTab.style.background = '#2a2a2a';
+    viewTab.style.color = '#888';
+    customTab.style.background = '#2563eb';
+    customTab.style.color = 'white';
+  }
+}
+
+function togglePref(key) {
+  progressPrefs[key] = !progressPrefs[key];
+  saveProgressPrefs();
 }
 
 function getVolumeTrend() {
@@ -1790,6 +1881,236 @@ function renderSessions(sessions) {
     html += `<div><strong>${s.dayName}</strong> • ${s.dateStr}</div>`;
     html += `<div style="color: #999;">Vol: <span style="color: #60a5fa;">${Math.round(s.volume)}</span> • ${s.reps} reps • Max: <span style="color: #10b981;">${s.maxWeight} lbs</span></div>`;
     html += `</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function getWorkoutStreak() {
+  const dates = Object.keys(workoutData).map(key => key.substring(0, key.lastIndexOf('-'))).filter((v, i, a) => a.indexOf(v) === i);
+  if (dates.length === 0) return { streak: 0, lastDate: null };
+  dates.sort((a, b) => b.localeCompare(a));
+  let streak = 0, current = new Date(todayISO());
+  for (let i = 0; i < 365; i++) {
+    const checkDate = new Date(current);
+    checkDate.setDate(checkDate.getDate() - i);
+    const dateStr = checkDate.getFullYear() + '-' + String(checkDate.getMonth() + 1).padStart(2, '0') + '-' + String(checkDate.getDate()).padStart(2, '0');
+    if (dates.includes(dateStr)) streak++;
+    else if (streak > 0) break;
+  }
+  return { streak, lastDate: dates[0] };
+}
+
+function renderStreakCard() {
+  const { streak } = getWorkoutStreak();
+  return `<div style="margin-bottom: 16px; padding: 20px; background: linear-gradient(135deg, #2563eb, #1e40af); border-radius: 8px; text-align: center;">
+    <div style="font-size: 44px; font-weight: 700; color: #fff; line-height: 1;">${streak}</div>
+    <div style="font-size: 12px; color: #ccc; margin-top: 6px;">Days in a Row 🔥</div>
+  </div>`;
+}
+
+function getStatsData() {
+  let totalSessions = 0, totalVolume = 0, totalReps = 0;
+  for (let key in workoutData) {
+    const dayExercises = workoutData[key];
+    let dayHasData = false;
+    for (let ex of dayExercises) {
+      for (let set of ex.sets) {
+        if (set.logged && set.r && set.r > 0) {
+          totalVolume += (set.w || 0) * set.r;
+          totalReps += set.r;
+          dayHasData = true;
+        }
+      }
+    }
+    if (dayHasData) totalSessions++;
+  }
+  for (let s of SEED) {
+    let dayHasData = false;
+    for (let ex of s.exercises) {
+      for (let set of ex.sets) {
+        if (set.r && set.r > 0) {
+          totalVolume += (set.w || 0) * set.r;
+          totalReps += set.r;
+          dayHasData = true;
+        }
+      }
+    }
+    if (dayHasData) totalSessions++;
+  }
+  return { sessions: totalSessions, volume: totalVolume, reps: totalReps };
+}
+
+function renderStatsGrid() {
+  const { sessions, volume, reps } = getStatsData();
+  const { streak } = getWorkoutStreak();
+  return `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 16px;">
+    <div style="padding: 12px; background: #0d0d0d; border-radius: 4px; text-align: center; border: 1px solid #2a2a2a;">
+      <div style="font-size: 20px; font-weight: 700; color: #2563eb;">${sessions}</div>
+      <div style="font-size: 10px; color: #888; margin-top: 4px;">Sessions</div>
+    </div>
+    <div style="padding: 12px; background: #0d0d0d; border-radius: 4px; text-align: center; border: 1px solid #2a2a2a;">
+      <div style="font-size: 20px; font-weight: 700; color: #10b981;">${(volume / 1000).toFixed(1)}K</div>
+      <div style="font-size: 10px; color: #888; margin-top: 4px;">Total Vol</div>
+    </div>
+    <div style="padding: 12px; background: #0d0d0d; border-radius: 4px; text-align: center; border: 1px solid #2a2a2a;">
+      <div style="font-size: 20px; font-weight: 700; color: #f59e0b;">${reps}</div>
+      <div style="font-size: 10px; color: #888; margin-top: 4px;">Reps Total</div>
+    </div>
+  </div>`;
+}
+
+function renderPRCards() {
+  const bestLifts = getBestLifts().slice(0, 3);
+  if (bestLifts.length === 0) return `<div style="margin-bottom: 16px; color: #666; font-size: 12px;">No PRs yet</div>`;
+  let html = `<div style="margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;">`;
+  for (let [name, data] of bestLifts) {
+    html += `<div style="padding: 12px; background: #1a2a1a; border-left: 3px solid #10b981; border-radius: 4px;">
+      <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${name}</div>
+      <div style="font-size: 18px; font-weight: 700; color: #10b981;">${data.weight || 'BW'}</div>
+      <div style="font-size: 11px; color: #666; margin-top: 4px;">× ${data.reps}</div>
+    </div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderExerciseCurves() {
+  const exerciseData = {};
+  for (let key in workoutData) {
+    const dateStr = key.substring(0, key.lastIndexOf('-'));
+    const dayExercises = workoutData[key];
+    for (let ex of dayExercises) {
+      if (!exerciseData[ex.name]) exerciseData[ex.name] = [];
+      const maxSet = ex.sets.reduce((max, s) => !max || (s.logged && s.w > (max.w || 0)) ? s : max, null);
+      if (maxSet && maxSet.logged) exerciseData[ex.name].push({ date: dateStr, w: maxSet.w || 0, r: maxSet.r });
+    }
+  }
+  for (let s of SEED) {
+    for (let ex of s.exercises) {
+      if (!exerciseData[ex.name]) exerciseData[ex.name] = [];
+      const maxSet = ex.sets[0];
+      if (maxSet && maxSet.r) exerciseData[ex.name].push({ date: s.date, w: maxSet.w || 0, r: maxSet.r });
+    }
+  }
+
+  let html = `<div style="margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">`;
+  for (let [name, points] of Object.entries(exerciseData).slice(0, 4)) {
+    const sorted = points.sort((a, b) => a.date.localeCompare(b.date));
+    const trend = sorted.length > 1 ? (sorted[sorted.length - 1].w - sorted[0].w) : 0;
+    const trendIcon = trend > 0 ? '↑' : trend < 0 ? '↓' : '→';
+    const trendColor = trend > 0 ? '#10b981' : trend < 0 ? '#ef4444' : '#888';
+    html += `<div style="padding: 10px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;">
+      <div style="font-size: 11px; color: #888; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</div>
+      <svg viewBox="0 0 80 30" style="width: 100%; height: 30px;">
+        ${sorted.map((p, i) => {
+          const x = (i / (sorted.length - 1 || 1)) * 70 + 5;
+          const maxW = Math.max(...sorted.map(s => s.w), 1);
+          const y = 25 - (p.w / maxW) * 20;
+          return `<circle cx="${x}" cy="${y}" r="2" fill="#2563eb" />`;
+        }).join('')}
+      </svg>
+      <div style="font-size: 12px; font-weight: 600; color: #60a5fa; margin-top: 4px;">${sorted[sorted.length - 1]?.w || 0} lbs</div>
+      <div style="font-size: 10px; color: ${trendColor}; margin-top: 2px;">${trendIcon} ${Math.abs(trend).toFixed(1)} lbs</div>
+    </div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function estimateOneRM(weight, reps) {
+  if (reps === 1) return weight;
+  return Math.round(weight * (1 + reps / 30) * 10) / 10;
+}
+
+function renderEstimated1RM() {
+  const bestLifts = getBestLifts().slice(0, 3);
+  if (bestLifts.length === 0) return `<div style="margin-bottom: 16px; color: #666; font-size: 12px;">No lifts logged yet</div>`;
+  let html = `<div style="margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;">`;
+  for (let [name, data] of bestLifts) {
+    const oneRM = estimateOneRM(data.weight, data.reps);
+    html += `<div style="padding: 10px; background: #1a1a2a; border-radius: 4px; border: 1px solid #2a2a4a;">
+      <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Est. 1RM</div>
+      <div style="font-size: 16px; font-weight: 700; color: #60a5fa;">${oneRM}</div>
+      <div style="font-size: 10px; color: #888; margin-top: 3px;">${name}</div>
+    </div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function getMuscleGroupStats() {
+  const stats = {};
+  for (let exName in EXERCISE_LIBRARY) {
+    const ex = externalExercises.find(e => e.name.toLowerCase() === exName.toLowerCase());
+    if (!ex || !ex.primaryMuscles) continue;
+    const muscle = ex.primaryMuscles[0];
+    if (!stats[muscle]) stats[muscle] = 0;
+    for (let key in workoutData) {
+      const dayEx = workoutData[key].find(e => e.name === exName);
+      if (dayEx) {
+        for (let set of dayEx.sets) {
+          if (set.logged && set.r && set.r > 0) stats[muscle] += (set.w || 0) * set.r;
+        }
+      }
+    }
+  }
+  return Object.entries(stats).sort((a, b) => b[1] - a[1]);
+}
+
+function renderMuscleGroupDist() {
+  const muscleData = getMuscleGroupStats();
+  if (muscleData.length === 0) return `<div style="margin-bottom: 16px; color: #666; font-size: 12px;">No muscle group data</div>`;
+  const total = muscleData.reduce((sum, [_, vol]) => sum + vol, 0);
+  const colors = ['#2563eb', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
+  let html = `<div style="margin-bottom: 16px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;">`;
+  html += `<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 11px; margin-bottom: 12px;">`;
+  for (let i = 0; i < muscleData.length; i++) {
+    const [muscle, vol] = muscleData[i];
+    const pct = ((vol / total) * 100).toFixed(0);
+    html += `<div style="display: flex; align-items: center; gap: 6px;">
+      <div style="width: 10px; height: 10px; background: ${colors[i % colors.length]}; border-radius: 2px;"></div>
+      <span>${muscle}: <span style="color: #60a5fa; font-weight: 600;">${pct}%</span></span>
+    </div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function getWeeklySummary() {
+  const weeks = {};
+  for (let key in workoutData) {
+    const date = new Date(key.substring(0, key.lastIndexOf('-')) + 'T00:00:00');
+    const weekStart = new Date(date);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const weekKey = weekStart.toISOString().split('T')[0];
+    if (!weeks[weekKey]) weeks[weekKey] = { volume: 0, sessions: 0, reps: 0 };
+    let hasData = false;
+    const dayEx = workoutData[key];
+    for (let ex of dayEx) {
+      for (let set of ex.sets) {
+        if (set.logged && set.r && set.r > 0) {
+          weeks[weekKey].volume += (set.w || 0) * set.r;
+          weeks[weekKey].reps += set.r;
+          hasData = true;
+        }
+      }
+    }
+    if (hasData) weeks[weekKey].sessions++;
+  }
+  return Object.entries(weeks).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 4);
+}
+
+function renderWeeklySummary(weeks) {
+  if (weeks.length === 0) return `<div style="color: #666; font-size: 12px;">No weekly data</div>`;
+  let html = `<div style="display: grid; gap: 8px;">`;
+  for (let [week, data] of weeks) {
+    const date = new Date(week + 'T00:00:00');
+    const label = `Week of ${(date.getMonth() + 1)}/${date.getDate()}`;
+    html += `<div style="padding: 10px; background: #111; border-radius: 3px; display: flex; justify-content: space-between;">
+      <div style="font-size: 12px; color: #e0e0e0;">${label}</div>
+      <div style="font-size: 11px; color: #999;">Vol: <span style="color: #60a5fa;">${(data.volume/1000).toFixed(1)}K</span> • ${data.sessions} sessions</div>
+    </div>`;
   }
   html += `</div>`;
   return html;
