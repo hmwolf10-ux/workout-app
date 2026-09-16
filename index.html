@@ -151,19 +151,6 @@
     .start-btn.secondary { background: #2a2a2a; }
     .start-btn.secondary:hover { background: #333; }
 
-    .auth-btn {
-      padding: 6px 12px;
-      background: #666;
-      color: white;
-      border: none;
-      border-radius: 3px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    .auth-btn:hover { background: #777; }
-
     .content {
       flex: 1;
       overflow-y: auto;
@@ -815,6 +802,12 @@
 
 <div class="container">
   <div class="header">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('workout')">Workout</button>
+      <button class="nav-tab" onclick="showPage('progress')">Progress</button>
+      <button class="nav-tab" onclick="showPage('history')">History</button>
+      <button class="nav-tab" onclick="showPage('settings')">Settings</button>
+    </div>
     <div class="header-top">
       <div class="header-left">
         <h1>💪 Workout</h1>
@@ -822,14 +815,7 @@
       <div class="header-timer" id="workoutTimer" style="display:none;">0:00</div>
       <div class="header-right">
         <button class="start-btn" id="startBtn" onclick="toggleWorkout()">Start Workout</button>
-        <button class="auth-btn" id="authBtn" onclick="handleAuth()" style="margin-left: 8px;">Sign in</button>
       </div>
-    </div>
-    <div class="nav-tabs">
-      <button class="nav-tab active" onclick="showPage('workout')">Workout</button>
-      <button class="nav-tab" onclick="showPage('progress')">Progress</button>
-      <button class="nav-tab" onclick="showPage('history')">History</button>
-      <button class="nav-tab" onclick="showPage('settings')">Settings</button>
     </div>
   </div>
 
@@ -2267,23 +2253,6 @@ function performExerciseSwap(newExerciseName) {
   persistData();
   closeSwapModal();
   renderWorkoutPage();
-}
-
-async function handleAuth() {
-  if (!sbClient) return alert('Supabase not loaded. Refresh the page.');
-  if (currentUser) {
-    await sbClient.auth.signOut();
-    currentUser = null;
-    document.getElementById('authBtn').textContent = 'Sign in';
-    workoutData = {};
-    render();
-  } else {
-    const { data, error } = await sbClient.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin }
-    });
-    if (error) console.error('Auth error:', error);
-  }
 }
 
 async function initAuth() {
