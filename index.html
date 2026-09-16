@@ -24,14 +24,21 @@
     }
 
     .header {
-      padding: 16px 24px;
+      padding: 0;
       background: #0d0d0d;
       border-bottom: 1px solid #2a2a2a;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-top {
+      padding: 16px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 20px;
     }
+
     .header-left {
       display: flex;
       align-items: center;
@@ -71,6 +78,40 @@
       gap: 8px;
       align-items: center;
     }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0;
+      background: #0d0d0d;
+      border-top: 1px solid #2a2a2a;
+      padding: 0 24px;
+      overflow-x: auto;
+    }
+
+    .nav-tab {
+      padding: 12px 0;
+      margin: 0 12px;
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .nav-tab:hover { color: #aaa; }
+
+    .nav-tab.active {
+      color: #e0e0e0;
+      border-bottom-color: #2563eb;
+    }
+
     .start-btn {
       padding: 6px 16px;
       background: #2563eb;
@@ -93,6 +134,11 @@
       flex: 1;
       overflow-y: auto;
       padding: 16px 24px;
+      display: none;
+    }
+
+    .content.active {
+      display: block;
     }
 
     .exercise-block {
@@ -613,8 +659,10 @@
       }
       .exercise-meta { font-size: 11px; }
       .rec-text { display: none; }
-      .header { padding: 12px 16px; }
+      .header-top { padding: 12px 16px; }
       .day-select { font-size: 14px; }
+      .nav-tabs { padding: 0 16px; }
+      .nav-tab { margin: 0 8px; }
     }
 
     @media (max-width: 380px) {
@@ -625,7 +673,7 @@
       .container {
         padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
       }
-      .header {
+      .header-top {
         padding: 8px 12px;
         padding-top: max(8px, env(safe-area-inset-top));
         padding-right: max(12px, env(safe-area-inset-right));
@@ -724,6 +772,8 @@
         font-size: 11px;
         margin-bottom: 6px;
       }
+      .nav-tabs { padding: 0 12px; }
+      .nav-tab { margin: 0 6px; font-size: 11px; }
     }
   </style>
 </head>
@@ -731,23 +781,33 @@
 
 <div class="container">
   <div class="header">
-    <div class="header-left">
-      <select class="day-select" id="daySelect" onchange="switchDay(this.value)">
-        <option value="Upper A">Upper A</option>
-        <option value="Lower A">Lower A</option>
-        <option value="Upper B">Upper B</option>
-        <option value="Lower B">Lower B</option>
-      </select>
-      <div class="date" id="todayDate"></div>
+    <div class="header-top">
+      <div class="header-left">
+        <select class="day-select" id="daySelect" onchange="switchDay(this.value)">
+          <option value="Upper A">Upper A</option>
+          <option value="Lower A">Lower A</option>
+          <option value="Upper B">Upper B</option>
+          <option value="Lower B">Lower B</option>
+        </select>
+        <div class="date" id="todayDate"></div>
+      </div>
+      <div class="header-timer" id="workoutTimer" style="display:none;">0:00</div>
+      <div class="header-right">
+        <button class="start-btn" id="startBtn" onclick="toggleWorkout()">Start Workout</button>
+      </div>
     </div>
-    <div class="header-timer" id="workoutTimer" style="display:none;">0:00</div>
-    <div class="header-right">
-      <button class="start-btn secondary" id="historyBtn" onclick="openHistory()">Progress</button>
-      <button class="start-btn" id="startBtn" onclick="toggleWorkout()">Start Workout</button>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('workout')">Workout</button>
+      <button class="nav-tab" onclick="showPage('progress')">Progress</button>
+      <button class="nav-tab" onclick="showPage('history')">History</button>
+      <button class="nav-tab" onclick="showPage('settings')">Settings</button>
     </div>
   </div>
 
-  <div class="content" id="content"></div>
+  <div class="content active" id="workoutPage"></div>
+  <div class="content" id="progressPage"></div>
+  <div class="content" id="historyPage"></div>
+  <div class="content" id="settingsPage"></div>
 </div>
 
 <div class="timer-display" id="timerDisplay">
@@ -771,16 +831,6 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="historyModal" style="display: none;">
-  <div class="modal">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-      <h2>Progress</h2>
-      <button class="modal-btn" onclick="closeHistory()" style="background: transparent; border: none; color: #e0e0e0; font-size: 24px; padding: 0; width: auto; min-width: auto;">×</button>
-    </div>
-    <div id="historyContent"></div>
-  </div>
-</div>
-
 <div class="modal-overlay" id="swapExerciseModal" style="display: none;">
   <div class="modal" style="max-width: 500px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -794,7 +844,6 @@
 <script>
 let externalExercises = [];
 
-// Load exercises from exercises.json
 fetch('exercises.json')
   .then(response => response.json())
   .then(data => {
@@ -898,6 +947,17 @@ const SEED = [
 function todayISO() { const d = new Date(); const year = d.getFullYear(); const month = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; }
 function fmtDate(iso) { return new Date(iso + 'T00:00:00').toLocaleDateString(undefined, {weekday: 'long', month: 'short', day: 'numeric'}); }
 
+function showPage(pageName) {
+  document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(pageName + 'Page').classList.add('active');
+  event.target.classList.add('active');
+
+  if (pageName === 'progress') renderProgressPage();
+  if (pageName === 'history') renderHistoryPage();
+  if (pageName === 'settings') renderSettingsPage();
+}
+
 function init() {
   document.getElementById('todayDate').textContent = fmtDate(todayISO());
   loadSettings();
@@ -905,7 +965,7 @@ function init() {
   loadProgressPrefs();
   renderDaySelector();
   loadWorkout();
-  render();
+  renderWorkoutPage();
 }
 
 function renderDaySelector() {
@@ -921,7 +981,7 @@ function switchDay(day) {
   currentDay = day;
   loadWorkout();
   renderDaySelector();
-  render();
+  renderWorkoutPage();
 }
 
 function toggleWorkout() {
@@ -937,7 +997,7 @@ function toggleWorkout() {
     workoutStartTime = Date.now();
     updateWorkoutTimer();
     workoutTimerInterval = setInterval(updateWorkoutTimer, 100);
-    render();
+    renderWorkoutPage();
   } else {
     document.getElementById('endWorkoutModal').style.display = 'flex';
   }
@@ -958,7 +1018,7 @@ function saveAndEndWorkout() {
   document.getElementById('timerDisplay').classList.remove('active');
   document.getElementById('endWorkoutModal').style.display = 'none';
   persistData();
-  render();
+  renderWorkoutPage();
 }
 
 function discardWorkout() {
@@ -979,7 +1039,7 @@ function discardWorkout() {
   document.getElementById('endWorkoutModal').style.display = 'none';
   persistData();
   loadWorkout();
-  render();
+  renderWorkoutPage();
 }
 
 function updateWorkoutTimer() {
@@ -1063,8 +1123,8 @@ function getWarmupSets(exName, targetWeight) {
   ];
 }
 
-function render() {
-  const con = document.getElementById('content');
+function renderWorkoutPage() {
+  const con = document.getElementById('workoutPage');
   const exData = workoutData[`${todayISO()}-${currentDay}`];
   const programDefs = PROGRAM[currentDay].exercises;
   const firstUncompleted = workoutActive ? findFirstUncompletedSet() : null;
@@ -1237,7 +1297,7 @@ function saveSet(exIdx, setIdx, field, value) {
   if (field === 'rir') set.rir = value ? parseFloat(value) : null;
 
   persistData();
-  render();
+  renderWorkoutPage();
 }
 
 function persistData() {
@@ -1289,7 +1349,7 @@ function toggleSetComplete(exIdx, setIdx, isChecked) {
 
   if (!isChecked && set.logged) {
     if (!confirm('Undo this set? This will clear the rest timer.')) {
-      render();
+      renderWorkoutPage();
       return;
     }
   }
@@ -1301,7 +1361,7 @@ function toggleSetComplete(exIdx, setIdx, isChecked) {
     timer.running = false;
     document.getElementById('timerDisplay').classList.remove('active');
     persistData();
-    render();
+    renderWorkoutPage();
     return;
   }
 
@@ -1314,10 +1374,10 @@ function toggleSetComplete(exIdx, setIdx, isChecked) {
     document.getElementById('endWorkoutModal').style.display = 'flex';
   } else if (isLastSetOfExercise(exIdx, setIdx)) {
     startTimer(REST_BETWEEN_EXERCISES);
-    render();
+    renderWorkoutPage();
   } else {
     startTimer(def.rest);
-    render();
+    renderWorkoutPage();
   }
 }
 
@@ -1325,7 +1385,7 @@ function addSet(exIdx) {
   const exData = workoutData[`${todayISO()}-${currentDay}`];
   exData[exIdx].sets.push({ w: null, r: null, rir: null, logged: false, recViewed: false });
   persistData();
-  render();
+  renderWorkoutPage();
 }
 
 function deleteSet(exIdx) {
@@ -1333,7 +1393,7 @@ function deleteSet(exIdx) {
   if (exData[exIdx].sets.length > 1) {
     exData[exIdx].sets.pop();
     persistData();
-    render();
+    renderWorkoutPage();
   }
 }
 
@@ -1347,7 +1407,7 @@ function applyRec(exIdx, setIdx, w, r, rir) {
   set.recViewed = true;
 
   persistData();
-  render();
+  renderWorkoutPage();
 }
 
 function getLastWorkedDate(exName) {
@@ -1585,17 +1645,6 @@ function skipTimer() {
   td.classList.remove('active');
 }
 
-function openHistory() {
-  const modal = document.getElementById('historyModal');
-  modal.style.display = 'flex';
-  renderHistory();
-}
-
-function closeHistory() {
-  const modal = document.getElementById('historyModal');
-  modal.style.display = 'none';
-}
-
 let progressPrefs = {
   streak: true, stats: true, prCards: true, curves: true,
   oneRM: true, muscleGroup: true, volumeTrend: true, sessions: true,
@@ -1615,125 +1664,153 @@ function saveProgressPrefs() {
   } catch (e) {}
 }
 
-function renderHistory() {
-  const content = document.getElementById('historyContent');
+function renderProgressPage() {
+  const content = document.getElementById('progressPage');
   loadProgressPrefs();
   let html = '';
 
-  html += `<div style="margin-bottom: 20px; display: flex; gap: 6px; border-bottom: 1px solid #2a2a2a; padding-bottom: 12px;">`;
-  html += `<button onclick="switchProgressTab('view')" id="viewTab" class="modal-btn" style="background: #2563eb; color: white; flex: 1; padding: 8px; font-size: 12px;">View</button>`;
-  html += `<button onclick="switchProgressTab('customize')" id="customTab" class="modal-btn secondary" style="background: #2a2a2a; color: #888; flex: 1; padding: 8px; font-size: 12px;">Customize</button>`;
+  html += `<div style="margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #2a2a2a; display: flex; gap: 8px; flex-wrap: wrap;">`;
+  html += `<button class="start-btn" onclick="toggleProgressCustomize()" style="background: #2a2a2a; color: #888;">⚙️ Customize</button>`;
   html += `</div>`;
 
-  html += `<div id="progressView" style="display: block;">`;
-
-  // Streak
+  html += `<div id="progressView">`;
   if (progressPrefs.streak) html += renderStreakCard();
-
-  // Stats Grid
   if (progressPrefs.stats) html += renderStatsGrid();
-
-  // PR Cards
   if (progressPrefs.prCards) html += renderPRCards();
-
-  // Exercise Curves
   if (progressPrefs.curves) html += renderExerciseCurves();
-
-  // Estimated 1RM
   if (progressPrefs.oneRM) html += renderEstimated1RM();
-
-  // Muscle Group Distribution
   if (progressPrefs.muscleGroup) html += renderMuscleGroupDist();
-
-  // Volume Trend
   if (progressPrefs.volumeTrend) {
     const volumeTrend = getVolumeTrend();
     html += `<div style="margin-bottom: 16px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Total Volume Trend</h3>` + renderVolumeTrend(volumeTrend) + `</div>`;
   }
-
-  // Sessions
   if (progressPrefs.sessions) {
     const sessions = getRecentSessions();
     html += `<div style="margin-bottom: 16px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Latest Sessions</h3>` + renderSessions(sessions) + `</div>`;
   }
-
-  // Weekly
   if (progressPrefs.weekly) {
     const weekly = getWeeklySummary();
     html += `<div style="margin-bottom: 16px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Weekly Summary</h3>` + renderWeeklySummary(weekly) + `</div>`;
   }
-
-  // Volume by Type
   if (progressPrefs.volumeByType) {
     const volumeByType = getVolumeByType();
     html += `<div style="margin-bottom: 16px; padding: 12px; background: #0d0d0d; border-radius: 4px; border: 1px solid #2a2a2a;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Volume by Workout Type</h3>` + renderVolumeByType(volumeByType) + `</div>`;
   }
-
   html += `</div>`;
 
-  // Customize tab
   html += `<div id="progressCustomize" style="display: none;">`;
   html += `<div style="margin-bottom: 16px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
   html += `<h3 style="color: #fff; font-size: 13px; margin: 0 0 12px 0;">Choose what to display:</h3>`;
-  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.streak ? 'checked' : ''} onchange="togglePref('streak'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Workout Streak</span></label>`;
-  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.stats ? 'checked' : ''} onchange="togglePref('stats'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Stats Grid (Sessions, Volume, Reps)</span></label>`;
-  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.prCards ? 'checked' : ''} onchange="togglePref('prCards'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Personal Record Cards</span></label>`;
-  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.curves ? 'checked' : ''} onchange="togglePref('curves'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Exercise Progression Curves</span></label>`;
-  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.oneRM ? 'checked' : ''} onchange="togglePref('oneRM'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Estimated 1RM</span></label>`;
-  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.muscleGroup ? 'checked' : ''} onchange="togglePref('muscleGroup'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Muscle Group Distribution</span></label>`;
-  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.volumeTrend ? 'checked' : ''} onchange="togglePref('volumeTrend'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Total Volume Trend</span></label>`;
-  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.sessions ? 'checked' : ''} onchange="togglePref('sessions'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Latest Sessions</span></label>`;
-  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.weekly ? 'checked' : ''} onchange="togglePref('weekly'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Weekly Summary</span></label>`;
-  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 0; cursor: pointer;"><input type="checkbox" ${progressPrefs.volumeByType ? 'checked' : ''} onchange="togglePref('volumeByType'); renderHistory();"> <span style="color: #e0e0e0; font-size: 12px;">Volume by Workout Type</span></label>`;
-  html += `</div>`;
-
-  html += `<div style="margin-bottom: 16px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
-  html += `<div class="settings-row" style="margin: 0;">`;
-  html += `<label>Body Weight:</label>`;
-  html += `<input type="number" value="${bodyWeight}" onblur="saveBodyWeight(this.value)" />`;
-  html += `<span>lbs</span>`;
-  html += `</div>`;
-  html += `</div>`;
-
-  html += `<div style="margin-bottom: 16px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
-  html += `<div style="margin-bottom: 8px;"><h3 style="color: #fff; font-size: 13px; margin: 0 0 8px 0;">Backup & Restore</h3></div>`;
-  html += `<div style="display: flex; gap: 8px; flex-wrap: wrap;">`;
-  html += `<button class="modal-btn save" onclick="exportWorkoutData()" style="flex: 1; min-width: 120px;">Export as JSON</button>`;
-  html += `<button class="modal-btn" onclick="triggerImportFile()" style="flex: 1; min-width: 120px;">Import from File</button>`;
-  html += `<input type="file" id="importFileInput" accept=".json,.csv" style="display: none;" onchange="importWorkoutData(event)" />`;
-  html += `</div>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.streak ? 'checked' : ''} onchange="togglePref('streak'); renderProgressPage();"> <span style="color: #e0e0e0; font-size: 12px;">Workout Streak</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.stats ? 'checked' : ''} onchange="togglePref('stats'); renderProgressPage();"> <span style="color: #e0e0e0; font-size: 12px;">Stats Grid</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.prCards ? 'checked' : ''} onchange="togglePref('prCards'); renderProgressPage();"> <span style="color: #e0e0e0; font-size: 12px;">Personal Record Cards</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.curves ? 'checked' : ''} onchange="togglePref('curves'); renderProgressPage();"> <span style="color: #e0e0e0; font-size: 12px;">Exercise Progression Curves</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.oneRM ? 'checked' : ''} onchange="togglePref('oneRM'); renderProgressPage();"> <span style="color: #e0e0e0; font-size: 12px;">Estimated 1RM</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.muscleGroup ? 'checked' : ''} onchange="togglePref('muscleGroup'); renderProgressPage();"> <span style="color: #e0e0e0; font-size: 12px;">Muscle Group Distribution</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.volumeTrend ? 'checked' : ''} onchange="togglePref('volumeTrend'); renderProgressPage();"> <span style="color: #e0e0e0; font-size: 12px;">Total Volume Trend</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.sessions ? 'checked' : ''} onchange="togglePref('sessions'); renderProgressPage();"> <span style="color: #e0e0e0; font-size: 12px;">Latest Sessions</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer;"><input type="checkbox" ${progressPrefs.weekly ? 'checked' : ''} onchange="togglePref('weekly'); renderProgressPage();"> <span style="color: #e0e0e0; font-size: 12px;">Weekly Summary</span></label>`;
+  html += `<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 0; cursor: pointer;"><input type="checkbox" ${progressPrefs.volumeByType ? 'checked' : ''} onchange="togglePref('volumeByType'); renderProgressPage();"> <span style="color: #e0e0e0; font-size: 12px;">Volume by Workout Type</span></label>`;
   html += `</div>`;
   html += `</div>`;
 
   content.innerHTML = html;
 }
 
-function switchProgressTab(tab) {
+function toggleProgressCustomize() {
   const view = document.getElementById('progressView');
   const customize = document.getElementById('progressCustomize');
-  const viewTab = document.getElementById('viewTab');
-  const customTab = document.getElementById('customTab');
-
-  if (tab === 'view') {
+  if (view.style.display === 'none') {
     view.style.display = 'block';
     customize.style.display = 'none';
-    viewTab.style.background = '#2563eb';
-    viewTab.style.color = 'white';
-    customTab.style.background = '#2a2a2a';
-    customTab.style.color = '#888';
   } else {
     view.style.display = 'none';
     customize.style.display = 'block';
-    viewTab.style.background = '#2a2a2a';
-    viewTab.style.color = '#888';
-    customTab.style.background = '#2563eb';
-    customTab.style.color = 'white';
   }
 }
 
 function togglePref(key) {
   progressPrefs[key] = !progressPrefs[key];
   saveProgressPrefs();
+}
+
+function renderHistoryPage() {
+  const con = document.getElementById('historyPage');
+  let html = `<div style="color: #999; font-size: 13px; padding: 20px; text-align: center;">Coming soon: Past workout history and filtering</div>`;
+  con.innerHTML = html;
+}
+
+function renderSettingsPage() {
+  const con = document.getElementById('settingsPage');
+  let html = '';
+
+  html += `<div style="margin-bottom: 16px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
+  html += `<h3 style="color: #fff; font-size: 13px; margin: 0 0 12px 0;">Body Weight</h3>`;
+  html += `<div class="settings-row" style="margin: 0;">`;
+  html += `<label>Current:</label>`;
+  html += `<input type="number" value="${bodyWeight}" onblur="saveBodyWeight(this.value)" />`;
+  html += `<span>lbs</span>`;
+  html += `</div>`;
+  html += `</div>`;
+
+  html += `<div style="margin-bottom: 16px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
+  html += `<h3 style="color: #fff; font-size: 13px; margin: 0 0 12px 0;">Backup & Restore</h3>`;
+  html += `<div style="display: flex; gap: 8px; flex-wrap: wrap;">`;
+  html += `<button class="modal-btn save" onclick="exportWorkoutData()" style="flex: 1; min-width: 120px;">Export as JSON</button>`;
+  html += `<button class="modal-btn" onclick="triggerImportFile()" style="flex: 1; min-width: 120px;">Import from File</button>`;
+  html += `<input type="file" id="importFileInput" accept=".json,.csv" style="display: none;" onchange="importWorkoutData(event)" />`;
+  html += `</div>`;
+  html += `</div>`;
+
+  con.innerHTML = html;
+}
+
+function exportWorkoutData() {
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    bodyWeight,
+    workoutData
+  };
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `workout-backup-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function triggerImportFile() {
+  document.getElementById('importFileInput').click();
+}
+
+function importWorkoutData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      if (backup.workoutData) {
+        workoutData = backup.workoutData;
+        if (backup.bodyWeight) bodyWeight = backup.bodyWeight;
+        persistData();
+        loadSettings();
+        loadWorkout();
+        renderWorkoutPage();
+        alert('Workout data imported successfully!');
+      } else {
+        alert('Invalid backup file format');
+      }
+    } catch (err) {
+      alert('Error reading file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 
 function getVolumeTrend() {
@@ -1800,19 +1877,6 @@ function getBestLifts() {
     }
   }
   return Object.entries(bestByEx).sort((a, b) => (b[1].weight * b[1].reps) - (a[1].weight * a[1].reps)).slice(0, 5);
-}
-
-function renderBestLifts(lifts) {
-  if (lifts.length === 0) return `<div style="color: #666; font-size: 12px;">No data yet</div>`;
-  let html = `<div style="font-size: 12px;">`;
-  for (let [name, data] of lifts) {
-    html += `<div style="margin: 6px 0; display: flex; justify-content: space-between; padding: 6px; background: #1a1a1a; border-radius: 3px;">`;
-    html += `<span>${name}</span>`;
-    html += `<span style="color: #60a5fa;">${data.weight || 'BW'} lbs × ${data.reps}</span>`;
-    html += `</div>`;
-  }
-  html += `</div>`;
-  return html;
 }
 
 function getVolumeByType() {
@@ -1943,7 +2007,6 @@ function getStatsData() {
 
 function renderStatsGrid() {
   const { sessions, volume, reps } = getStatsData();
-  const { streak } = getWorkoutStreak();
   return `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 16px;">
     <div style="padding: 12px; background: #0d0d0d; border-radius: 4px; text-align: center; border: 1px solid #2a2a2a;">
       <div style="font-size: 20px; font-weight: 700; color: #2563eb;">${sessions}</div>
@@ -2116,55 +2179,6 @@ function renderWeeklySummary(weeks) {
   return html;
 }
 
-function exportWorkoutData() {
-  const backup = {
-    exportedAt: new Date().toISOString(),
-    bodyWeight,
-    workoutData
-  };
-  const json = JSON.stringify(backup, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `workout-backup-${new Date().toISOString().split('T')[0]}.json`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-function triggerImportFile() {
-  document.getElementById('importFileInput').click();
-}
-
-function importWorkoutData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const backup = JSON.parse(e.target.result);
-      if (backup.workoutData) {
-        workoutData = backup.workoutData;
-        if (backup.bodyWeight) bodyWeight = backup.bodyWeight;
-        persistData();
-        loadSettings();
-        loadWorkout();
-        render();
-        alert('Workout data imported successfully!');
-        closeHistory();
-      } else {
-        alert('Invalid backup file format');
-      }
-    } catch (err) {
-      alert('Error reading file: ' + err.message);
-    }
-  };
-  reader.readAsText(file);
-  event.target.value = '';
-}
-
 let swapExerciseIndex = null;
 
 function swapExercise(exIdx) {
@@ -2203,7 +2217,7 @@ function performExerciseSwap(newExerciseName) {
   exData[swapExerciseIndex].name = newExerciseName;
   persistData();
   closeSwapModal();
-  render();
+  renderWorkoutPage();
 }
 
 init();
