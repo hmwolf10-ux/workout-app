@@ -938,6 +938,7 @@ function renderSettingsPage() {
     <p class="settings-help">Enter a recent hard set. The app estimates a starting load for every exercise, then replaces estimates as you log real sets.</p>
     ${renderBaselineFields()}
     <button class="modal-btn save" onclick="saveBaseline()">Save baseline</button>
+    ${appSettings.baseline.completed ? renderWeekZeroPlan() : ''}
   </div>`;
 
   html += `<div class="settings-card">
@@ -982,6 +983,28 @@ function renderBaselineFields() {
     <label>Reps<input id="baselineBenchReps" type="number" min="1" value="${bench.reps || ''}" placeholder="6"></label>
     <label>Reverse lunge / dumbbell (${appSettings.unit})<input id="baselineLungeWeight" type="number" min="0" value="${lunge.weight || ''}" placeholder="25"></label>
     <label>Reps<input id="baselineLungeReps" type="number" min="1" value="${lunge.reps || ''}" placeholder="8"></label>
+  </div>`;
+}
+
+function renderWeekZeroPlan() {
+  const exercises = [];
+  DAY_ORDER.forEach(day => PROGRAM[day].exercises.forEach(exercise => {
+    if (!exercises.some(existing => existing.name === exercise.name)) exercises.push(exercise);
+  }));
+  const rows = exercises.map(exercise => {
+    const exLib = EXERCISE_LIBRARY[exercise.name];
+    const recommendation = getBaselineRecommendation(exercise.name);
+    const weight = exLib.type === 'bodyweight' ? 'Bodyweight' : `${recommendation.w} ${appSettings.unit}`;
+    return `<div class="week-zero-row">
+      <span>${exercise.name}</span>
+      <strong>${weight}</strong>
+      <small>${exLib.repMin || 1}-${exLib.repMax || 15} reps · ${exercise.sets} sets</small>
+    </div>`;
+  });
+  return `<div class="week-zero-plan">
+    <h4>Week 0 starting weights</h4>
+    <p class="settings-help">Use these for the first working set. If the effort is far off, log the actual weight and future recommendations will adapt.</p>
+    ${rows.join('')}
   </div>`;
 }
 

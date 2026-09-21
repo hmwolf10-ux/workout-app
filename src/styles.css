@@ -197,6 +197,36 @@
       margin-bottom: 12px;
       line-height: 1.5;
     }
+    .week-zero-plan {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid #2a2a2a;
+    }
+    .week-zero-plan h4 {
+      color: #fff;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .week-zero-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #222;
+      font-size: 12px;
+    }
+    .week-zero-row:last-child {
+      border-bottom: 0;
+    }
+    .week-zero-row strong {
+      color: #60a5fa;
+      white-space: nowrap;
+    }
+    .week-zero-row small {
+      color: #777;
+      white-space: nowrap;
+    }
     .baseline-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -272,6 +302,8 @@
       .start-btn { padding: 6px 10px; }
       .baseline-prompt { align-items: flex-start; flex-direction: column; }
       .baseline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .week-zero-row { grid-template-columns: minmax(0, 1fr) auto; }
+      .week-zero-row small { grid-column: 1 / -1; }
       .exercise-meta { gap: 6px; }
     }
     .exercise-block:first-of-type {
