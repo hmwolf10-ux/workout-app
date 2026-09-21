@@ -15,12 +15,22 @@ A minimal, fast web app for tracking strength training workouts. Designed for th
 
 ## Quick Start
 
-1. Open `index.html` in a web browser (or [deploy it online](https://pages.github.com/))
-2. Select your workout day from the dropdown
-3. Click "Start Workout" to enable logging
-4. Enter weight, reps, and RIR for each set
-5. Check the box to mark sets complete and auto-start rest timers
-6. View history and progress in the Progress/History tabs
+### Option 1: Open Locally
+1. Clone this repo: `git clone https://github.com/hmwolf10-ux/workout-app.git`
+2. Open `index.html` in your browser
+3. That's it — no server needed (all data saves locally)
+
+### Option 2: Use Online
+- [Enable GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) to host it at `https://hmwolf10-ux.github.io/workout-app/`
+- Or deploy to [Netlify](https://netlify.com) or [Vercel](https://vercel.com) (free tier, just connect your GitHub repo)
+
+### Using the App
+
+1. Select your workout day from the dropdown
+2. Click "Start Workout" to enable logging
+3. Enter weight, reps, and RIR for each set
+4. Check the box to mark sets complete and auto-start rest timers
+5. View history and progress in the Progress/History tabs
 
 ## How It Works
 
