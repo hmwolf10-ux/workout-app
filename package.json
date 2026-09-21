@@ -1,0 +1,7 @@
+{
+  "name": "workout-tracker",
+  "private": true,
+  "scripts": {
+    "check": "node --check src/app.js"
+  }
+}

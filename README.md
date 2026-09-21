@@ -15,10 +15,13 @@ A minimal, fast web app for tracking strength training workouts. Designed for th
 
 ## Quick Start
 
-### Option 1: Open Locally
+### Option 1: Run Locally
 1. Clone this repo: `git clone https://github.com/hmwolf10-ux/workout-app.git`
-2. Open `index.html` in your browser
-3. That's it — no server needed (all data saves locally)
+2. From the repository directory, run `python -m http.server 8080`
+3. Open http://localhost:8080 in your browser
+
+The development server is recommended because the app loads exercise data with `fetch`.
+Workout data still saves locally in the browser and does not require a backend.
 
 ### Option 2: Use Online
 - [Enable GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) to host it at `https://hmwolf10-ux.github.io/workout-app/`
@@ -30,7 +33,8 @@ A minimal, fast web app for tracking strength training workouts. Designed for th
 2. Click "Start Workout" to enable logging
 3. Enter weight, reps, and RIR for each set
 4. Check the box to mark sets complete and auto-start rest timers
-5. View history and progress in the Progress/History tabs
+5. View progress in the Progress tab. The History page is currently an unfinished
+   placeholder and does not yet list past workouts.
 
 ## How It Works
 
@@ -50,7 +54,7 @@ Workouts follow a standard Upper/Lower split:
 - **Upper B** (Thu): Incline Dumbbell Press, Chin-ups, Dumbbell Shoulder Press, Lateral Raises
 - **Lower B** (Fri): Bulgarian Split Squats, Hip Thrusts, Seated Leg Curls, Calf Raises
 
-Programs are hardcoded in `PROGRAM` object; customize by editing the JavaScript.
+Programs are defined in `src/data/config.js`; customize them there.
 
 ### Recommendations
 
@@ -70,7 +74,7 @@ The algorithm suggests next-set targets based on:
 
 ### Change Exercises
 
-Edit the `EXERCISE_LIBRARY` in `index.html`:
+Edit the `EXERCISE_LIBRARY` in `src/data/config.js`:
 
 ```javascript
 "Barbell Bench Press": { 
@@ -86,7 +90,7 @@ Edit the `EXERCISE_LIBRARY` in `index.html`:
 
 ### Change Programs
 
-Edit the `PROGRAM` object to swap exercises or add new days.
+Edit the `PROGRAM` object in `src/data/config.js` to swap exercises or add new days.
 
 ### Change Timers
 
@@ -97,9 +101,16 @@ Edit the `PROGRAM` object to swap exercises or add new days.
 
 Works in all modern browsers (Chrome, Firefox, Safari, Edge). Optimized for mobile with safe-area insets for notches.
 
+## Project Structure
+
+- `index.html` — document shell and application markup
+- `src/styles.css` — application styles
+- `src/app.js` — workout, progress, settings, import/export, and localStorage behavior
+- `src/data/config.js` — workout programs, exercise rules, timer settings, and demo history
+- `public/data/exercises.json` — exercise catalog used for alternatives
+
 ## Future Ideas
 
-- Cloud sync via Supabase (backend plumbing started but incomplete)
 - Exercise swap modal for alternatives
 - Weekly/monthly progress charts
 - CSV export for data backup
