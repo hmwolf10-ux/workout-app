@@ -33,8 +33,8 @@ Workout data still saves locally in the browser and does not require a backend.
 2. Click "Start Workout" to enable logging
 3. Enter weight, reps, and RIR for each set
 4. Check the box to mark sets complete and auto-start rest timers
-5. View progress in the Progress tab. The History page is currently an unfinished
-   placeholder and does not yet list past workouts.
+5. View progress in the Progress tab or saved sessions in the History tab.
+6. Open Settings to enter a Week 0 baseline and choose the workout days you want available.
 
 ## How It Works
 
@@ -60,15 +60,21 @@ Programs are defined in `src/data/config.js`; customize them there.
 
 The algorithm suggests next-set targets based on:
 
-- Last performance for this exercise (weight, reps, RIR)
+- A Week 0 baseline (bench press and reverse lunge) when no logged performance exists
+- The most recent logged working sets for this exercise (weight, reps, RIR)
 - Exercise rep range targets (e.g., 6–8 for compounds, 8–10 for accessories)
 - Weight increment rules (2.5–5 LB depending on exercise type)
 
+Recommendations include a short explanation. They are conservative estimates, not a substitute
+for adjusting the load when the prescribed effort does not match the actual set.
+
 ### Data Storage
 
-- **Workouts** — Saved to `localStorage` as `workoutData` (survives browser restarts)
+- **Workouts and settings** — Saved to a versioned `localStorage` envelope under `workoutData`
+  (survives browser restarts and includes baseline data plus the selected schedule)
 - **Body Weight** — Saved to `localStorage` as `bodyWeight` for future use
 - **Progress Prefs** — Display toggle settings for the Progress page
+- **Backup** — Export/import includes workouts, settings, and the Week 0 baseline
 
 ## Customization
 

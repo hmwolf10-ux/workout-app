@@ -22,6 +22,16 @@ function getExerciseAlternatives(exerciseName) {
 let currentDay = "Upper A";
 let workoutData = {};
 let bodyWeight = 180;
+let appSettings = {
+  unit: 'lb',
+  activeDays: ['Upper A', 'Lower A', 'Upper B', 'Lower B'],
+  baseline: {
+    completed: false,
+    recordedAt: null,
+    bench: { weight: 175, reps: 6, rir: 2 },
+    lunge: { weight: 35, reps: 8, rir: 2 }
+  }
+};
 let timer = { remaining: 0, running: false, intervalId: null };
 let workoutActive = false;
 let workoutStartTime = null;
@@ -45,8 +55,15 @@ function init() {
   loadSettings();
   loadData();
   loadProgressPrefs();
+  ensureCurrentDayIsAvailable();
   loadWorkout();
   renderWorkoutPage();
+}
+
+function ensureCurrentDayIsAvailable() {
+  if (!appSettings.activeDays.includes(currentDay)) {
+    currentDay = appSettings.activeDays[0] || DAY_ORDER[0];
+  }
 }
 
 function renderDaySelector() {
@@ -213,11 +230,13 @@ function renderWorkoutPage() {
   let html = '<div class="workout-header-section">';
   html += '<label for="daySelectInline">Today\'s Program:</label>';
   html += '<select class="day-select" id="daySelectInline" onchange="switchDay(this.value)">';
-  html += '<option value="Upper A" ' + (currentDay === "Upper A" ? "selected" : "") + '>Upper A</option>';
-  html += '<option value="Lower A" ' + (currentDay === "Lower A" ? "selected" : "") + '>Lower A</option>';
-  html += '<option value="Upper B" ' + (currentDay === "Upper B" ? "selected" : "") + '>Upper B</option>';
-  html += '<option value="Lower B" ' + (currentDay === "Lower B" ? "selected" : "") + '>Lower B</option>';
+  appSettings.activeDays.forEach(day => {
+    html += `<option value="${day}" ${currentDay === day ? "selected" : ""}>${day} · ${PROGRAM[day].weekday}</option>`;
+  });
   html += '</select></div>';
+  if (!appSettings.baseline.completed) {
+    html += renderBaselinePrompt();
+  }
   for (let exIdx = 0; exIdx < exData.length; exIdx++) {
     const ex = exData[exIdx];
     const progDef = programDefs[exIdx];
@@ -328,13 +347,14 @@ function renderWorkoutPage() {
 
       const isFirstGlobal = firstUncompleted && firstUncompleted.exIdx === exIdx && firstUncompleted.setIdx === setIdx;
       if (workoutActive && rec && !set.logged && !set.recViewed && isFirstGlobal) {
-        html += `<div class="set-rec-row" onclick="applyRec(${exIdx}, ${setIdx}, ${rec.w !== null ? rec.w : 'null'}, ${rec.r}, ${rec.rir !== null ? rec.rir : 'null'})">`;
+        html += `<div class="set-rec-row" title="${rec.reason || ''}" onclick="applyRec(${exIdx}, ${setIdx}, ${rec.w !== null ? rec.w : 'null'}, ${rec.r}, ${rec.rir !== null ? rec.rir : 'null'})">`;
         html += `<div class="rec-val">→</div>`;
         html += `<div class="rec-val">${rec.w !== null ? rec.w : '0'}</div>`;
         html += `<div class="rec-val">${rec.r}</div>`;
         html += `<div class="rec-val">${rec.rir !== null ? rec.rir : ''}</div>`;
         html += `<div></div>`;
         html += `</div>`;
+        html += `<div class="recommendation-reason">${rec.reason || 'Tap to apply recommendation'}</div>`;
       }
     }
     html += `</div>`;
@@ -390,7 +410,12 @@ function saveSet(exIdx, setIdx, field, value) {
 
 function persistData() {
   try {
-    localStorage.setItem('workoutData', JSON.stringify(workoutData));
+    localStorage.setItem('workoutData', JSON.stringify({
+      schemaVersion: 2,
+      workoutData,
+      settings: appSettings,
+      bodyWeight
+    }));
   } catch (e) {
     console.error('Failed to save to localStorage:', e);
   }
@@ -400,7 +425,14 @@ function loadData() {
   try {
     const stored = localStorage.getItem('workoutData');
     if (stored) {
-      workoutData = JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (parsed.workoutData) {
+        workoutData = parsed.workoutData;
+        if (parsed.settings) appSettings = { ...appSettings, ...parsed.settings, baseline: { ...appSettings.baseline, ...(parsed.settings.baseline || {}) } };
+        if (parsed.bodyWeight) bodyWeight = parsed.bodyWeight;
+      } else {
+        workoutData = parsed;
+      }
     }
   } catch (e) {
     console.error('Failed to load from localStorage:', e);
@@ -413,8 +445,22 @@ function loadSettings() {
     if (storedBW) {
       bodyWeight = parseInt(storedBW);
     }
+    const storedSettings = localStorage.getItem('appSettings');
+    if (storedSettings) {
+      const parsed = JSON.parse(storedSettings);
+      appSettings = { ...appSettings, ...parsed, baseline: { ...appSettings.baseline, ...(parsed.baseline || {}) } };
+    }
   } catch (e) {
     console.error('Failed to load settings:', e);
+  }
+}
+
+function saveAppSettings() {
+  try {
+    localStorage.setItem('appSettings', JSON.stringify(appSettings));
+    persistData();
+  } catch (e) {
+    console.error('Failed to save app settings:', e);
   }
 }
 
@@ -424,6 +470,7 @@ function saveBodyWeight(val) {
     bodyWeight = parsed;
     try {
       localStorage.setItem('bodyWeight', bodyWeight.toString());
+      persistData();
     } catch (e) {
       console.error('Failed to save body weight:', e);
     }
@@ -573,6 +620,8 @@ function findLastPerformance(exName) {
 
   if (latest) return latest;
 
+  if (appSettings.baseline.completed) return null;
+
   for (let s of SEED) {
     const ex = s.exercises.find(e => e.name === exName);
     if (ex) return ex;
@@ -615,12 +664,13 @@ function findLastWeekPerformance(exName) {
 }
 
 function getRecommendation(exName, setIdx, lastPerf) {
-  if (!lastPerf) return null;
   const exLib = EXERCISE_LIBRARY[exName];
   if (!exLib) return null;
+  if (!lastPerf) return getBaselineRecommendation(exName);
 
   const prevSetIdx = setIdx - 1;
-  const ls = prevSetIdx >= 0 ? lastPerf.sets[prevSetIdx] : lastPerf.sets[setIdx];
+  const completedSets = lastPerf.sets.filter(set => set.logged && set.r !== null && set.r > 0);
+  const ls = completedSets.length ? completedSets[Math.min(setIdx, completedSets.length - 1)] : null;
 
   if (!ls || ls.r === null) return null;
 
@@ -629,18 +679,18 @@ function getRecommendation(exName, setIdx, lastPerf) {
   if (exLib.type === 'bodyweight') {
     const max = 15;
     if (rir < 1) {
-      return { w: null, r: ls.r, rir: 0 };
+      return { w: null, r: ls.r, rir: 0, reason: 'Repeat the last reps and leave at least 1 rep in reserve.' };
     }
     if (rir < 2) {
-      return { w: null, r: ls.r, rir: 1 };
+      return { w: null, r: ls.r, rir: 1, reason: 'Repeat the last reps while keeping the effort controlled.' };
     }
     if (ls.r >= max) {
-      return { w: null, r: ls.r + 1, rir: 1 };
+      return { w: null, r: ls.r + 1, rir: 1, reason: 'You reached the top of the rep range; add one rep.' };
     }
     if (rir < 4) {
-      return { w: null, r: ls.r + 1, rir: 1 };
+      return { w: null, r: ls.r + 1, rir: 1, reason: 'Add one rep before increasing load.' };
     }
-    return { w: null, r: Math.min(ls.r + 2, max), rir: 1 };
+    return { w: null, r: Math.min(ls.r + 2, max), rir: 1, reason: 'You had plenty in reserve; add reps next time.' };
   }
 
   const min = exLib.repMin || 8;
@@ -648,21 +698,59 @@ function getRecommendation(exName, setIdx, lastPerf) {
   const incr = exLib.weightIncrement || 5;
 
   if (rir < 1) {
-    return { w: ls.w, r: ls.r, rir: 0 };
+    return { w: ls.w, r: Math.max(min, ls.r), rir: 0, reason: 'Hold the load steady and avoid repeating a failed set.' };
   }
   if (rir < 2) {
-    return { w: ls.w, r: ls.r, rir: 1 };
+    return { w: ls.w, r: Math.max(min, ls.r), rir: 1, reason: 'Repeat this load until the reps feel more controlled.' };
   }
 
   if (ls.r >= max) {
-    return { w: ls.w + incr, r: min, rir: 1 };
+    return { w: ls.w + incr, r: min, rir: 1, reason: `You completed the top of the range; add ${incr} ${appSettings.unit}.` };
   }
 
   if (rir < 4) {
-    return { w: ls.w, r: ls.r + 1, rir: 1 };
+    return { w: ls.w, r: Math.min(ls.r + 1, max), rir: 1, reason: 'Add one rep before increasing load.' };
   }
 
-  return { w: ls.w, r: Math.min(ls.r + 2, max), rir: 1 };
+  return { w: ls.w, r: Math.min(ls.r + 2, max), rir: 1, reason: 'You had plenty in reserve; add reps before load.' };
+}
+
+function getBaselineRecommendation(exName) {
+  if (!appSettings.baseline.completed) return null;
+  const exLib = EXERCISE_LIBRARY[exName];
+  if (!exLib) return null;
+  const upperRatios = {
+    'Barbell Bench Press': 1,
+    'Bent-Over Rows': 0.75,
+    'Dumbbell Bench Press': 0.43,
+    'Incline Dumbbell Press': 0.3,
+    'Dumbbell Shoulder Press': 0.25,
+    'Dumbbell Curls': 0.17,
+    'Lateral Raises': 0.1
+  };
+  const lowerRatios = {
+    'Reverse Lunges (DB)': 1,
+    'Bulgarian Split Squat (DB)': 1,
+    'Hip Thrusts': 4,
+    'Seated Leg Curls': 4,
+    'Calf Raises': 5
+  };
+  const anchor = ['Upper A', 'Upper B'].some(day => PROGRAM[day].exercises.some(ex => ex.name === exName))
+    ? appSettings.baseline.bench
+    : appSettings.baseline.lunge;
+  const ratio = upperRatios[exName] || lowerRatios[exName];
+  const min = exLib.repMin || 8;
+  const weight = exLib.type === 'bodyweight' ? null : roundToIncrement(anchor.weight * (ratio || 0.5), exLib.weightIncrement || 5);
+  return {
+    w: weight,
+    r: min,
+    rir: 2,
+    reason: `Week 0 estimate from your ${anchor.weight} ${appSettings.unit} baseline. Adjust it after your first set.`
+  };
+}
+
+function roundToIncrement(value, increment) {
+  return Math.max(increment, Math.round(value / increment) * increment);
 }
 
 function startTimer(sec) {
@@ -824,13 +912,39 @@ function togglePref(key) {
 
 function renderHistoryPage() {
   const con = document.getElementById('historyPage');
-  let html = `<div style="color: #999; font-size: 13px; padding: 20px; text-align: center;">Coming soon: Past workout history and filtering</div>`;
+  const sessions = getRecentSessions(50);
+  let html = `<div class="page-heading"><h2>Workout history</h2><span>${sessions.length} saved sessions</span></div>`;
+  if (sessions.length === 0) {
+    html += `<div class="empty-state">Finish your first workout and it will appear here.</div>`;
+  } else {
+    html += `<div class="history-list">`;
+    sessions.forEach(session => {
+      html += `<div class="history-card">
+        <div><strong>${session.dayName}</strong><span>${fmtDate(session.dateStr)}</span></div>
+        <div class="history-stats"><span>${session.completedSets} sets</span><span>${Math.round(session.volume).toLocaleString()} ${appSettings.unit}</span><span>${session.reps} reps</span></div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
   con.innerHTML = html;
 }
 
 function renderSettingsPage() {
   const con = document.getElementById('settingsPage');
   let html = '';
+
+  html += `<div class="settings-card">
+    <h3>Week 0 strength baseline</h3>
+    <p class="settings-help">Enter a recent hard set. The app estimates a starting load for every exercise, then replaces estimates as you log real sets.</p>
+    ${renderBaselineFields()}
+    <button class="modal-btn save" onclick="saveBaseline()">Save baseline</button>
+  </div>`;
+
+  html += `<div class="settings-card">
+    <h3>Weekly schedule</h3>
+    <p class="settings-help">Choose the sessions you want available. Your completed history is never changed.</p>
+    <div class="schedule-grid">${DAY_ORDER.map(day => `<label><input type="checkbox" ${appSettings.activeDays.includes(day) ? 'checked' : ''} onchange="toggleActiveDay('${day}', this.checked)"> ${day}<small>${PROGRAM[day].weekday}</small></label>`).join('')}</div>
+  </div>`;
 
   html += `<div style="margin-bottom: 16px; padding: 12px; background: #111; border-radius: 4px; border: 1px solid #2a2a2a;">`;
   html += `<h3 style="color: #fff; font-size: 13px; margin: 0 0 12px 0;">Body Weight</h3>`;
@@ -853,10 +967,66 @@ function renderSettingsPage() {
   con.innerHTML = html;
 }
 
+function renderBaselinePrompt() {
+  return `<div class="baseline-prompt">
+    <div><strong>Set up Week 0</strong><span>Tell us two recent lifts to unlock starting recommendations.</span></div>
+    <button class="modal-btn save" onclick="showPage('settings', document.querySelector('.nav-tab:nth-child(4)'))">Set baseline</button>
+  </div>`;
+}
+
+function renderBaselineFields() {
+  const bench = appSettings.baseline.bench;
+  const lunge = appSettings.baseline.lunge;
+  return `<div class="baseline-grid">
+    <label>Bench press (${appSettings.unit})<input id="baselineBenchWeight" type="number" min="0" value="${bench.weight || ''}" placeholder="175"></label>
+    <label>Reps<input id="baselineBenchReps" type="number" min="1" value="${bench.reps || ''}" placeholder="6"></label>
+    <label>Reverse lunge / dumbbell (${appSettings.unit})<input id="baselineLungeWeight" type="number" min="0" value="${lunge.weight || ''}" placeholder="35"></label>
+    <label>Reps<input id="baselineLungeReps" type="number" min="1" value="${lunge.reps || ''}" placeholder="8"></label>
+  </div>`;
+}
+
+function saveBaseline() {
+  const benchWeight = Number(document.getElementById('baselineBenchWeight').value);
+  const benchReps = Number(document.getElementById('baselineBenchReps').value);
+  const lungeWeight = Number(document.getElementById('baselineLungeWeight').value);
+  const lungeReps = Number(document.getElementById('baselineLungeReps').value);
+  if (!benchWeight || !benchReps || !lungeWeight || !lungeReps) {
+    alert('Enter a weight and reps for both baseline lifts.');
+    return;
+  }
+  appSettings.baseline = {
+    completed: true,
+    recordedAt: todayISO(),
+    bench: { weight: benchWeight, reps: benchReps, rir: 2 },
+    lunge: { weight: lungeWeight, reps: lungeReps, rir: 2 }
+  };
+  saveAppSettings();
+  renderSettingsPage();
+  renderWorkoutPage();
+}
+
+function toggleActiveDay(day, enabled) {
+  if (enabled && !appSettings.activeDays.includes(day)) {
+    appSettings.activeDays.push(day);
+  } else if (!enabled && appSettings.activeDays.length > 1) {
+    appSettings.activeDays = appSettings.activeDays.filter(activeDay => activeDay !== day);
+  } else if (!enabled) {
+    renderSettingsPage();
+    return;
+  }
+  appSettings.activeDays = DAY_ORDER.filter(programDay => appSettings.activeDays.includes(programDay));
+  ensureCurrentDayIsAvailable();
+  saveAppSettings();
+  renderSettingsPage();
+  renderWorkoutPage();
+}
+
 function exportWorkoutData() {
   const backup = {
+    schemaVersion: 2,
     exportedAt: new Date().toISOString(),
     bodyWeight,
+    settings: appSettings,
     workoutData
   };
   const json = JSON.stringify(backup, null, 2);
@@ -885,7 +1055,9 @@ function importWorkoutData(event) {
       if (backup.workoutData) {
         workoutData = backup.workoutData;
         if (backup.bodyWeight) bodyWeight = backup.bodyWeight;
+        if (backup.settings) appSettings = { ...appSettings, ...backup.settings, baseline: { ...appSettings.baseline, ...(backup.settings.baseline || {}) } };
         persistData();
+        saveAppSettings();
         loadSettings();
         loadWorkout();
         renderWorkoutPage();
@@ -1003,26 +1175,27 @@ function renderVolumeByType(data) {
   return html;
 }
 
-function getRecentSessions() {
+function getRecentSessions(limit = 5) {
   const sessions = [];
   for (let key in workoutData) {
     const lastDashIdx = key.lastIndexOf('-');
     const dateStr = key.substring(0, lastDashIdx);
     const dayName = key.substring(lastDashIdx + 1);
     const dayExercises = workoutData[key];
-    let sessionVol = 0, reps = 0, maxW = 0;
+    let sessionVol = 0, reps = 0, maxW = 0, completedSets = 0;
     for (let ex of dayExercises) {
       for (let set of ex.sets) {
         if (set.logged && set.r && set.r > 0) {
           sessionVol += (set.w || 0) * set.r;
           reps += set.r;
           maxW = Math.max(maxW, set.w || 0);
+          completedSets++;
         }
       }
     }
-    if (sessionVol > 0) sessions.push({ dateStr, dayName, volume: sessionVol, reps, maxWeight: maxW });
+    if (sessionVol > 0) sessions.push({ dateStr, dayName, volume: sessionVol, reps, maxWeight: maxW, completedSets });
   }
-  return sessions.sort((a, b) => b.dateStr.localeCompare(a.dateStr)).slice(0, 5);
+  return sessions.sort((a, b) => b.dateStr.localeCompare(a.dateStr)).slice(0, limit);
 }
 
 function renderSessions(sessions) {
