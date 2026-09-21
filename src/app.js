@@ -29,7 +29,7 @@ let appSettings = {
     completed: false,
     recordedAt: null,
     bench: { weight: 175, reps: 6, rir: 2 },
-    lunge: { weight: 35, reps: 8, rir: 2 }
+    lunge: { weight: 25, reps: 8, rir: 2 }
   }
 };
 let timer = { remaining: 0, running: false, intervalId: null };
@@ -980,7 +980,7 @@ function renderBaselineFields() {
   return `<div class="baseline-grid">
     <label>Bench press (${appSettings.unit})<input id="baselineBenchWeight" type="number" min="0" value="${bench.weight || ''}" placeholder="175"></label>
     <label>Reps<input id="baselineBenchReps" type="number" min="1" value="${bench.reps || ''}" placeholder="6"></label>
-    <label>Reverse lunge / dumbbell (${appSettings.unit})<input id="baselineLungeWeight" type="number" min="0" value="${lunge.weight || ''}" placeholder="35"></label>
+    <label>Reverse lunge / dumbbell (${appSettings.unit})<input id="baselineLungeWeight" type="number" min="0" value="${lunge.weight || ''}" placeholder="25"></label>
     <label>Reps<input id="baselineLungeReps" type="number" min="1" value="${lunge.reps || ''}" placeholder="8"></label>
   </div>`;
 }
