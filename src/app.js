@@ -241,9 +241,6 @@ function renderWorkoutPage() {
     html += `<option value="${day}" ${currentDay === day ? "selected" : ""}>${day} · ${PROGRAM[day].weekday}</option>`;
   });
   html += '</select></div>';
-  if (!appSettings.baseline.completed) {
-    html += renderBaselinePrompt();
-  }
   for (let exIdx = 0; exIdx < exData.length; exIdx++) {
     const ex = exData[exIdx];
     const progDef = programDefs[exIdx];
@@ -941,14 +938,6 @@ function renderSettingsPage() {
   let html = '';
 
   html += `<div class="settings-card">
-    <h3>Week 0 strength baseline</h3>
-    <p class="settings-help">Enter a recent hard set. The app estimates a starting load for every exercise, then replaces estimates as you log real sets.</p>
-    ${renderBaselineFields()}
-    <button class="modal-btn save" onclick="saveBaseline()">Save baseline</button>
-    ${appSettings.baseline.completed ? renderWeekZeroPlan() : ''}
-  </div>`;
-
-  html += `<div class="settings-card">
     <h3>Weekly schedule</h3>
     <p class="settings-help">Choose the sessions you want available. Your completed history is never changed.</p>
     <div class="schedule-grid">${DAY_ORDER.map(day => `<label><input type="checkbox" ${appSettings.activeDays.includes(day) ? 'checked' : ''} onchange="toggleActiveDay('${day}', this.checked)"> ${day}<small>${PROGRAM[day].weekday}</small></label>`).join('')}</div>
@@ -973,13 +962,6 @@ function renderSettingsPage() {
   html += `</div>`;
 
   con.innerHTML = html;
-}
-
-function renderBaselinePrompt() {
-  return `<div class="baseline-prompt">
-    <div><strong>Set up Week 0</strong><span>Tell us two recent lifts to unlock starting recommendations.</span></div>
-    <button class="modal-btn save" onclick="showPage('settings', document.querySelector('.nav-tab:nth-child(4)'))">Set baseline</button>
-  </div>`;
 }
 
 function renderBaselineFields() {
@@ -1519,6 +1501,12 @@ function ensureProductSettings() {
   appSettings.equipment.availableExercises = appSettings.equipment.availableExercises.filter(name => EXERCISE_LIBRARY[name]);
   if (!appSettings.equipment.availableExercises.length) appSettings.equipment.availableExercises = Object.keys(EXERCISE_LIBRARY);
   appSettings.mesocycle = { week: 0, length: 5, deload: true, periodization: 'none', ...(appSettings.mesocycle || {}) };
+  appSettings.baseline = {
+    completed: true,
+    recordedAt: appSettings.baseline?.recordedAt || null,
+    bench: { weight: 175, reps: 6, rir: 2, ...(appSettings.baseline?.bench || {}) },
+    lunge: { weight: 25, reps: 8, rir: 2, ...(appSettings.baseline?.lunge || {}) }
+  };
   appSettings.plan = { version: 1, effectiveFrom: todayISO(), sessions: {}, ...(appSettings.plan || {}) };
   DAY_ORDER.forEach(day => {
     if (!appSettings.plan.sessions[day]) {
@@ -1701,7 +1689,6 @@ renderSettingsPage = function () {
     <label>Build weeks<input id="mesoLength" class="input-field" type="number" min="2" max="12" value="${m.length}"></label>
     <label>Periodization<select id="mesoPeriodization" class="input-field"><option value="none">None</option><option value="linear">Linear load</option><option value="undulating">Undulating reps</option></select></label>
   </div><label class="inline-check"><input id="mesoDeload" type="checkbox" ${m.deload ? 'checked' : ''}> Deload after build</label> <button class="modal-btn save" onclick="saveProfileSettings()">Save mesocycle</button></div>`;
-  html += `<div class="settings-card"><h3>Week 0 baseline & prescription</h3><p class="settings-help">Anchor inputs are used only until real working sets exist. Defaults are 175 lb bench and 25 lb dumbbell reverse lunge.</p>${renderBaselineFields()}<button class="modal-btn save" onclick="saveBaseline()">Save baseline</button>${appSettings.baseline.completed ? renderWeekZeroPlan() : ''}</div>`;
   html += `<div class="settings-card"><h3>Stable plan (future sessions only)</h3><p class="settings-help">Changing a day creates a new plan version; saved sessions keep their original exercises.</p>${DAY_ORDER.map(day => `<div class="plan-row"><strong>${day}</strong><span>${planForDay(day).exercises.map(x => x.name).join(' · ')}</span><input class="input-field" type="number" min="1" max="8" value="${planForDay(day).exercises[0]?.sets || 3}" onchange="savePlanSet('${day}', this.value)"></div>`).join('')}</div>`;
   html += `<div class="settings-card"><h3>Backup & restore</h3><p class="settings-help">Versioned JSON includes profile, equipment, plan, mesocycle, baseline and history.</p><button class="modal-btn save" onclick="exportWorkoutData()">Export JSON</button> <button class="modal-btn" onclick="triggerImportFile()">Import JSON</button><input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importWorkoutData(event)"></div>`;
   con.innerHTML = html;

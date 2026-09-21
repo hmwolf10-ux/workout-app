@@ -38,7 +38,8 @@ Workout data still saves locally in the browser and does not require a backend.
 3. Enter weight, reps, and RIR for each set
 4. Check the box to mark sets complete and auto-start rest timers
 5. View progress in the Progress tab or saved sessions in the History tab.
-6. Open Settings to set your profile, equipment, schedule, Week 0 anchors, and mesocycle.
+6. Open Settings to set your profile, equipment, schedule, and mesocycle. Week 0 is built in
+   automatically from the default 175 lb bench and 25 lb dumbbell reverse-lunge anchors.
 
 ## How It Works
 
