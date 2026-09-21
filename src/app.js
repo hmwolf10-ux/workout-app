@@ -24,9 +24,16 @@ let workoutData = {};
 let bodyWeight = 180;
 let appSettings = {
   unit: 'lb',
+  profile: { goal: 'hypertrophy', experience: 'intermediate', frequency: 4, duration: 60 },
+  equipment: {
+    increment: 5, minWeight: 0, maxWeight: 500,
+    availableExercises: Object.keys(EXERCISE_LIBRARY)
+  },
+  plan: { version: 1, effectiveFrom: todayISO(), sessions: {} },
+  mesocycle: { week: 0, length: 5, deload: true, periodization: 'none' },
   activeDays: ['Upper A', 'Lower A', 'Upper B', 'Lower B'],
   baseline: {
-    completed: false,
+    completed: true,
     recordedAt: null,
     bench: { weight: 175, reps: 6, rir: 2 },
     lunge: { weight: 25, reps: 8, rir: 2 }
@@ -1503,5 +1510,210 @@ function performExerciseSwap(newExerciseName) {
   closeSwapModal();
   renderWorkoutPage();
 }
+
+/* Product model: settings are intentionally kept separate from logged sessions.
+   A plan edit only affects sessions created after its effective date. */
+function ensureProductSettings() {
+  appSettings.profile = { goal: 'hypertrophy', experience: 'intermediate', frequency: 4, duration: 60, ...(appSettings.profile || {}) };
+  appSettings.equipment = { increment: 5, minWeight: 0, maxWeight: 500, availableExercises: Object.keys(EXERCISE_LIBRARY), ...(appSettings.equipment || {}) };
+  appSettings.equipment.availableExercises = appSettings.equipment.availableExercises.filter(name => EXERCISE_LIBRARY[name]);
+  if (!appSettings.equipment.availableExercises.length) appSettings.equipment.availableExercises = Object.keys(EXERCISE_LIBRARY);
+  appSettings.mesocycle = { week: 0, length: 5, deload: true, periodization: 'none', ...(appSettings.mesocycle || {}) };
+  appSettings.plan = { version: 1, effectiveFrom: todayISO(), sessions: {}, ...(appSettings.plan || {}) };
+  DAY_ORDER.forEach(day => {
+    if (!appSettings.plan.sessions[day]) {
+      appSettings.plan.sessions[day] = JSON.parse(JSON.stringify(PROGRAM[day]));
+    }
+  });
+  appSettings.activeDays = (appSettings.activeDays || DAY_ORDER).filter(day => PROGRAM[day]);
+}
+
+const legacyLoadSettings = loadSettings;
+loadSettings = function () {
+  legacyLoadSettings();
+  ensureProductSettings();
+};
+const legacyLoadData = loadData;
+loadData = function () {
+  legacyLoadData();
+  ensureProductSettings();
+};
+const legacyPersistData = persistData;
+persistData = function () {
+  ensureProductSettings();
+  try {
+    localStorage.setItem('workoutData', JSON.stringify({
+      schemaVersion: 3, savedAt: new Date().toISOString(), workoutData, settings: appSettings, bodyWeight
+    }));
+  } catch (e) { console.error('Failed to save to localStorage:', e); }
+};
+
+function planForDay(day) {
+  ensureProductSettings();
+  return appSettings.plan.sessions[day] || PROGRAM[day];
+}
+function applyPlanToProgram() {
+  ensureProductSettings();
+  DAY_ORDER.forEach(day => {
+    const plan = appSettings.plan.sessions[day];
+    if (plan) PROGRAM[day] = plan;
+  });
+}
+const legacyInit = init;
+init = function () {
+  legacyInit();
+  applyPlanToProgram();
+  renderWorkoutPage();
+};
+
+/* New dates use the current plan; existing date/day keys remain untouched. */
+const legacyLoadWorkout = loadWorkout;
+loadWorkout = function () {
+  applyPlanToProgram();
+  const key = `${todayISO()}-${currentDay}`;
+  if (!workoutData[key]) {
+    const plan = planForDay(currentDay);
+    workoutData[key] = plan.exercises
+      .filter(ex => appSettings.equipment.availableExercises.includes(ex.name))
+      .map(progEx => {
+        const exLib = EXERCISE_LIBRARY[progEx.name];
+        return { name: progEx.name, type: exLib ? exLib.type : 'weighted',
+          sets: Array(progEx.sets).fill(null).map(() => ({ w: null, r: null, rir: null, logged: false, recViewed: false })) };
+      });
+  }
+};
+
+function priorWorkingSets(exName) {
+  const rows = [];
+  Object.keys(workoutData).forEach(key => {
+    const date = key.substring(0, key.lastIndexOf('-'));
+    (workoutData[key] || []).forEach(ex => {
+      if (ex.name === exName) (ex.sets || []).forEach(set => {
+        if (set.logged && Number(set.r) > 0) rows.push({ ...set, date });
+      });
+    });
+  });
+  SEED.forEach(session => (session.exercises || []).forEach(ex => {
+    if (ex.name === exName) (ex.sets || []).forEach(set => { if (Number(set.r) > 0) rows.push({ ...set, date: session.date }); });
+  }));
+  return rows.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+getRecommendation = function (exName, setIdx) {
+  const exLib = EXERCISE_LIBRARY[exName];
+  if (!exLib) return null;
+  const history = priorWorkingSets(exName);
+  const last = history.length ? history[history.length - 1] : null;
+  const min = exLib.repMin || 8;
+  const max = exLib.repMax || 12;
+  const configuredIncrement = Number(appSettings.equipment.increment) || 0;
+  const increment = Math.max(exLib.weightIncrement || 1, configuredIncrement || 0.01);
+  const deload = appSettings.mesocycle.deload && Number(appSettings.mesocycle.week) >= Number(appSettings.mesocycle.length);
+  const goalOffset = appSettings.profile.goal === 'strength' ? -2 : appSettings.profile.goal === 'endurance' ? 3 : 0;
+  let targetMin = Math.max(1, min + goalOffset);
+  let targetMax = Math.max(targetMin, max + goalOffset);
+  const periodization = appSettings.mesocycle.periodization;
+  if (periodization === 'undulating' && Number(appSettings.mesocycle.week) % 2 === 1) {
+    targetMin = Math.max(1, targetMin - 2);
+    targetMax = Math.max(targetMin, targetMax - 2);
+  }
+  if (!last) {
+    const base = getBaselineRecommendation(exName);
+    if (!base) return null;
+    return { ...base, r: Math.min(targetMax, Math.max(targetMin, base.r)), reason: `Week 0 prescription from your anchor input; target ${targetMin}-${targetMax} reps at about 2 RIR.` };
+  }
+  const rir = last.rir === null || last.rir === undefined ? 2 : Number(last.rir);
+  let w = exLib.type === 'bodyweight' ? null : Number(last.w || 0);
+  let r = Number(last.r || targetMin);
+  let reason;
+  if (deload) {
+    if (w !== null) w = roundToIncrement(w * 0.8, increment);
+    r = Math.min(targetMax, Math.max(targetMin, r));
+    reason = `Deload week ${appSettings.mesocycle.week}: reduce load ~20% and keep ${targetMin}-${targetMax} controlled reps.`;
+  } else if (rir < 1) {
+    r = Math.max(targetMin, r - 1);
+    reason = 'Last set reached failure; repeat or slightly reduce load to keep the target RIR.';
+  } else if (r >= targetMax && rir >= 2) {
+    if (w !== null) w += increment * (periodization === 'linear' ? Math.min(2, Math.max(1, Number(appSettings.mesocycle.week))) : 1);
+    r = targetMin;
+    reason = `Top of the rep range with ${rir} RIR; add the smallest available increment (${increment} ${appSettings.unit}).`;
+  } else if (rir >= 3) {
+    r = Math.min(targetMax, r + 1);
+    reason = `You had ${rir} RIR; add one rep before increasing load.`;
+  } else {
+    r = Math.min(targetMax, Math.max(targetMin, r));
+    reason = `Repeat the last working load and aim for ${targetMin}-${targetMax} reps at 1-2 RIR.`;
+  }
+  if (w !== null) w = Math.min(Number(appSettings.equipment.maxWeight) || 500, Math.max(Number(appSettings.equipment.minWeight) || 0, roundToIncrement(w, increment)));
+  return { w, r, rir: deload ? 3 : 1, reason: `${reason} Based on ${history.length} prior working set${history.length === 1 ? '' : 's'}.` };
+};
+
+function saveProfileSettings() {
+  const value = id => document.getElementById(id)?.value;
+  appSettings.profile = {
+    goal: value('profileGoal') || 'hypertrophy', experience: value('profileExperience') || 'intermediate',
+    frequency: Number(value('profileFrequency')) || 4, duration: Number(value('profileDuration')) || 60
+  };
+  appSettings.unit = value('profileUnit') || 'lb';
+  appSettings.equipment.increment = Number(value('equipmentIncrement')) || 5;
+  appSettings.equipment.minWeight = Number(value('equipmentMin')) || 0;
+  appSettings.equipment.maxWeight = Number(value('equipmentMax')) || 500;
+  appSettings.mesocycle.length = Number(value('mesoLength')) || 5;
+  appSettings.mesocycle.week = Number(value('mesoWeek')) || 0;
+  appSettings.mesocycle.deload = !!document.getElementById('mesoDeload')?.checked;
+  appSettings.mesocycle.periodization = value('mesoPeriodization') || 'none';
+  saveAppSettings();
+  renderSettingsPage(); renderWorkoutPage();
+}
+
+function toggleEquipment(name, enabled) {
+  if (enabled && !appSettings.equipment.availableExercises.includes(name)) appSettings.equipment.availableExercises.push(name);
+  if (!enabled) appSettings.equipment.availableExercises = appSettings.equipment.availableExercises.filter(item => item !== name);
+  saveAppSettings(); loadWorkout(); renderSettingsPage(); renderWorkoutPage();
+}
+
+function savePlanSet(day, value) {
+  const sets = Math.max(1, Math.min(8, Number(value) || 1));
+  appSettings.plan.sessions[day].exercises.forEach(ex => { ex.sets = sets; });
+  appSettings.plan.version += 1; appSettings.plan.effectiveFrom = todayISO();
+  applyPlanToProgram(); saveAppSettings(); renderSettingsPage();
+}
+
+renderSettingsPage = function () {
+  const con = document.getElementById('settingsPage');
+  ensureProductSettings();
+  const p = appSettings.profile, e = appSettings.equipment, m = appSettings.mesocycle;
+  let html = `<div class="page-heading"><h2>Settings</h2><span>Plan v${appSettings.plan.version}</span></div>`;
+  html += `<div class="settings-card"><h3>Your training profile</h3><p class="settings-help">These inputs shape the prescription without changing completed history.</p><div class="product-grid">
+    <label>Goal<select id="profileGoal" class="input-field"><option value="hypertrophy">Muscle gain</option><option value="strength">Strength</option><option value="endurance">Endurance</option></select></label>
+    <label>Experience<select id="profileExperience" class="input-field"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label>
+    <label>Sessions / week<input id="profileFrequency" class="input-field" type="number" min="1" max="7" value="${p.frequency}"></label>
+    <label>Minutes / session<input id="profileDuration" class="input-field" type="number" min="15" max="180" value="${p.duration}"></label>
+    <label>Units<select id="profileUnit" class="input-field"><option value="lb">lb</option><option value="kg">kg</option></select></label>
+  </div><button class="modal-btn save" onclick="saveProfileSettings()">Save profile</button></div>`;
+  html += `<div class="settings-card"><h3>Equipment profile</h3><p class="settings-help">Recommendations never exceed this range and use the smallest increment available.</p><div class="product-grid">
+    <label>Smallest increment<input id="equipmentIncrement" class="input-field" type="number" min="0.1" step="0.1" value="${e.increment}"></label>
+    <label>Minimum load<input id="equipmentMin" class="input-field" type="number" min="0" value="${e.minWeight}"></label>
+    <label>Maximum load<input id="equipmentMax" class="input-field" type="number" min="1" value="${e.maxWeight}"></label>
+  </div><div class="equipment-list">${Object.keys(EXERCISE_LIBRARY).map(name => `<label><input type="checkbox" ${e.availableExercises.includes(name) ? 'checked' : ''} onchange="toggleEquipment('${name.replace(/'/g, "\\'")}', this.checked)"> ${name}</label>`).join('')}</div></div>`;
+  html += `<div class="settings-card"><h3>Mesocycle</h3><p class="settings-help">A simple ${m.length}-week build can finish with a deload. Change week as you progress.</p><div class="product-grid">
+    <label>Current week<input id="mesoWeek" class="input-field" type="number" min="0" max="12" value="${m.week}"></label>
+    <label>Build weeks<input id="mesoLength" class="input-field" type="number" min="2" max="12" value="${m.length}"></label>
+    <label>Periodization<select id="mesoPeriodization" class="input-field"><option value="none">None</option><option value="linear">Linear load</option><option value="undulating">Undulating reps</option></select></label>
+  </div><label class="inline-check"><input id="mesoDeload" type="checkbox" ${m.deload ? 'checked' : ''}> Deload after build</label> <button class="modal-btn save" onclick="saveProfileSettings()">Save mesocycle</button></div>`;
+  html += `<div class="settings-card"><h3>Week 0 baseline & prescription</h3><p class="settings-help">Anchor inputs are used only until real working sets exist. Defaults are 175 lb bench and 25 lb dumbbell reverse lunge.</p>${renderBaselineFields()}<button class="modal-btn save" onclick="saveBaseline()">Save baseline</button>${appSettings.baseline.completed ? renderWeekZeroPlan() : ''}</div>`;
+  html += `<div class="settings-card"><h3>Stable plan (future sessions only)</h3><p class="settings-help">Changing a day creates a new plan version; saved sessions keep their original exercises.</p>${DAY_ORDER.map(day => `<div class="plan-row"><strong>${day}</strong><span>${planForDay(day).exercises.map(x => x.name).join(' · ')}</span><input class="input-field" type="number" min="1" max="8" value="${planForDay(day).exercises[0]?.sets || 3}" onchange="savePlanSet('${day}', this.value)"></div>`).join('')}</div>`;
+  html += `<div class="settings-card"><h3>Backup & restore</h3><p class="settings-help">Versioned JSON includes profile, equipment, plan, mesocycle, baseline and history.</p><button class="modal-btn save" onclick="exportWorkoutData()">Export JSON</button> <button class="modal-btn" onclick="triggerImportFile()">Import JSON</button><input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importWorkoutData(event)"></div>`;
+  con.innerHTML = html;
+  document.getElementById('profileGoal').value = p.goal; document.getElementById('profileExperience').value = p.experience; document.getElementById('profileUnit').value = appSettings.unit; document.getElementById('mesoPeriodization').value = m.periodization;
+};
+
+exportWorkoutData = function () {
+  const backup = { schemaVersion: 3, exportedAt: new Date().toISOString(), bodyWeight, settings: appSettings, workoutData };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob), link = document.createElement('a');
+  link.href = url; link.download = `workout-backup-${todayISO()}.json`;
+  document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+};
 
 init();
