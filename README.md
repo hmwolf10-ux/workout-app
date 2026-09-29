@@ -1,5 +1,7 @@
 # Workout Tracker
 
+**[▶ Open the app](https://hmwolf10-ux.github.io/workout-app/)**
+
 A minimal, fast web app for tracking strength training workouts. Designed for the gym with an offline-first approach, real-time timers, and smart exercise recommendations.
 
 ## Features
