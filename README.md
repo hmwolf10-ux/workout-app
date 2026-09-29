@@ -2,133 +2,63 @@
 
 **[▶ Open the app](https://hmwolf10-ux.github.io/workout-app/)**
 
-A minimal, fast web app for tracking strength training workouts. Designed for the gym with an offline-first approach, real-time timers, and smart exercise recommendations.
+A phone-first training app: build your own programs from 800+ exercises, log sets in one tap, and get load targets that follow your actual performance. It works offline, installs to your home screen, and keeps everything on your device.
 
-## Features
+## What it does
 
-- **Stable, editable training plan** — Upper/Lower sessions can be adjusted for future workouts without rewriting history; plan versions are retained in the backup
-- **Training profile** — Goal, experience, sessions per week, session duration, and lb/kg units
-- **Equipment profile** — Available exercises, minimum/maximum load, and the smallest usable increment
-- **Week 0 prescriptions** — Every exercise receives a transparent starting prescription derived from the 175 lb bench and 25 lb dumbbell reverse-lunge anchors (editable in Settings)
-- **Smart Logging** — Track weight, reps, and RIR (Reps in Reserve) for each set with auto-complete detection
-- **Exercise Recommendations** — Set-by-set suggestions use all prior working sets, rep ranges, RIR, equipment limits, and an explicit reason
-- **Mesocycles** — Simple build weeks, optional linear/undulating periodization, and an optional deload prescription
-- **Warmup Sets** — Automatic warmup suggestions for compound lifts above threshold weights
-- **Rest Timers** — Between-set and between-exercise countdown timers with vibration alerts
-- **Progress Tracking** — View PRs, volume trends, and historical performance data
-- **Offline-First** — All data saved to browser localStorage; works without internet
-- **Minimal Design** — Dark theme, optimized for mobile and desktop gym use
+- **Build any workout.** Start from a template (Upper/Lower, Push/Pull/Legs, Full Body, Strength) or a blank program. Add, reorder and remove days and exercises, set sets and rep ranges, or create custom exercises. Need a one-off? Start a Quick workout and add exercises as you go.
+- **Log fast.** Every set is pre-filled with today's target, so a normal set is one tap. Warm-up ramps, a rest timer with sound and vibration, notes, swap/reorder mid-workout, and PR alerts.
+- **Targets that adapt.** Each set is converted to an RIR-adjusted estimated 1RM. The next session's load is the heaviest step that still hits the target reps at the target effort, using double progression (fill the rep range, then add load). After each set it can nudge the next one up or down.
+- **Periodization built in.** Choose a goal:
+  - *Muscle gain*: effort ramps 3 → 1 RIR over a 2–8 week block, sets ramp up, then a half-volume deload.
+  - *Strength*: main barbell lifts move to 3–6 reps with longer rests.
+  - *Peaking*: pick an event date and it runs accumulation → intensification → realization → taper.
+- **Volume tracking.** Weekly hard sets per muscle group against MEV / MAV / MRV landmarks, in the plan editor and on the Progress tab.
+- **Progress.** Strength trends, records, sets and tonnage per week, streaks, body-weight log, and a heads-up when several lifts stop progressing.
+- **History you can fix.** Open any workout to edit or delete sets, or repeat it.
+- **Private and offline.** Data lives in your browser's `localStorage`; export/import a JSON backup from Settings. Installable as a PWA.
 
-## Quick Start
+## Running it
 
-### Option 1: Run Locally
-1. Clone this repo: `git clone https://github.com/hmwolf10-ux/workout-app.git`
-2. From the repository directory, run `python -m http.server 8080`
-3. Open http://localhost:8080 in your browser
+It is plain HTML and ES modules with no build step. Serve the folder with any static server (the app loads the exercise catalog with `fetch`):
 
-The development server is recommended because the app loads exercise data with `fetch`.
-Workout data still saves locally in the browser and does not require a backend.
-
-### Option 2: Use Online
-- [Enable GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) to host it at `https://hmwolf10-ux.github.io/workout-app/`
-- Or deploy to [Netlify](https://netlify.com) or [Vercel](https://vercel.com) (free tier, just connect your GitHub repo)
-
-### Using the App
-
-1. Select your workout day from the dropdown
-2. Click "Start Workout" to enable logging
-3. Enter weight, reps, and RIR for each set
-4. Check the box to mark sets complete and auto-start rest timers
-5. View progress in the Progress tab or saved sessions in the History tab.
-6. Open Settings to set your profile, equipment, schedule, and mesocycle. Week 0 is built in
-   automatically from the default 175 lb bench and 25 lb dumbbell reverse-lunge anchors.
-
-## How It Works
-
-### Logging a Set
-
-1. Fill in **weight** (LB), **reps**, and **RIR** (reps left in reserve: 0–5+)
-2. Check the ✓ box to mark complete
-3. A rest timer automatically starts (90–150s depending on exercise)
-4. Recommendation arrow (→) shows suggested weight/reps for the next set
-
-### Programs
-
-Workouts follow a standard Upper/Lower split:
-
-- **Upper A** (Mon): Barbell Bench, Bent-Over Rows, Pull-ups, Dumbbell Curls
-- **Lower A** (Tue): Reverse Lunges, Hip Thrusts, Seated Leg Curls, Hanging Leg Raises
-- **Upper B** (Thu): Incline Dumbbell Press, Chin-ups, Dumbbell Shoulder Press, Lateral Raises
-- **Lower B** (Fri): Bulgarian Split Squats, Hip Thrusts, Seated Leg Curls, Calf Raises
-
-Programs are defined in `src/data/config.js`; customize them there.
-
-### Recommendations
-
-The algorithm suggests next-set targets based on:
-
-- A Week 0 baseline (bench press and reverse lunge) when no logged performance exists
-- All prior logged working sets for this exercise (weight, reps, RIR), including set-to-set fatigue
-- Exercise rep range targets (e.g., 6–8 for compounds, 8–10 for accessories)
-- Weight increment rules and the equipment profile's minimum/maximum load
-- Current mesocycle and deload phase
-
-Recommendations include a short explanation. They are conservative estimates, not a substitute
-for adjusting the load when the prescribed effort does not match the actual set.
-
-### Data Storage
-
-- **Workouts and settings** — Saved to a versioned schema-3 `localStorage` envelope under `workoutData`
-  (survives browser restarts and includes profile, equipment, plan versions, mesocycle, baseline, and history)
-- **Body Weight** — Saved to `localStorage` as `bodyWeight` for future use
-- **Progress Prefs** — Display toggle settings for the Progress page
-- **Backup** — Versioned JSON export/import is backward compatible with the original baseline-only format
-
-## Customization
-
-### Change Exercises
-
-Edit the `EXERCISE_LIBRARY` in `src/data/config.js`:
-
-```javascript
-"Barbell Bench Press": { 
-  type: "weighted", 
-  repMin: 6, 
-  repMax: 8, 
-  rest: 150,          // Rest in seconds
-  compound: true,     // Shows warmup suggestions
-  weightIncrement: 5, // Increment for next set
-  warmupThreshold: 75 // Min weight to trigger warmup
-}
+```
+python -m http.server 8080
 ```
 
-### Change Programs
+then open http://localhost:8080. Deploy by enabling GitHub Pages on `main` (root folder), or drop the folder on Netlify/Vercel.
 
-Edit the `PROGRAM` object in `src/data/config.js` to swap exercises or add new days.
+Tests for the training engine use Node's built-in runner:
 
-### Change Timers
+```
+npm test
+```
 
-- **Rest between sets**: Adjust `rest` field in `EXERCISE_LIBRARY`
-- **Rest between exercises**: Change `REST_BETWEEN_EXERCISES` constant (default: 120s)
+## How the training model works
 
-## Browser Compatibility
+| Piece | Rule |
+| --- | --- |
+| Estimated 1RM | Epley on `reps + RIR` (capped at 15 total reps) |
+| Next load | Same weight if the rep target fits the range; +1 step if you'd top the range; down if you'd land below it |
+| Target effort | Ramps across the block (3 → 1 RIR), 4 RIR on deload, phase-specific when peaking |
+| Bad days | One session more than 8% below the last is averaged rather than trusted |
+| Bodyweight lifts | Reps first; added load once you top the range (uses your logged body weight) |
+| Volume | Primary muscle counts 1 per set, secondary muscles 0.5 |
 
-Works in all modern browsers (Chrome, Firefox, Safari, Edge). Optimized for mobile with safe-area insets for notches.
+These are well-supported defaults, not medical or coaching advice. Landmarks vary by person; adjust sets to your recovery.
 
-## Project Structure
+## Project structure
 
-- `index.html` — document shell and application markup
-- `src/styles.css` — application styles
-- `src/app.js` — workout, progress, settings, import/export, and localStorage behavior
-- `src/data/config.js` — workout programs, exercise rules, timer settings, and demo history
-- `public/data/exercises.json` — exercise catalog used for alternatives
-
-## Future Ideas
-
-- Exercise swap modal for alternatives
-- Weekly/monthly progress charts
-- CSV export for data backup
-- Dark/light theme toggle
+- `index.html`, `manifest.webmanifest`, `sw.js`, `icon.svg`: app shell and PWA files
+- `src/main.js`: routing, events, rest timer
+- `src/engine.js`: pure training logic (e1RM, prescriptions, periodization, volume)
+- `src/session.js`: starting, logging and finishing workouts
+- `src/store.js`: state, persistence, backup, migration from the old app version
+- `src/catalog.js`, `src/pickers.js`: exercise catalog, search, custom exercises
+- `src/defaults.js`: built-in exercises, templates, volume landmarks
+- `src/views/`: Today, Workout, Plan, Progress, History, Settings
+- `public/data/exercises.json`: exercise catalog
+- `tests/`: engine tests
 
 ## License
 

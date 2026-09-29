@@ -2,68 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0e1116">
+  <meta name="color-scheme" content="dark light">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Workout">
   <title>Workout Tracker</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
   <link rel="stylesheet" href="src/styles.css">
-
 </head>
 <body>
-
-<div class="container">
-  <div class="header">
-    <div class="nav-tabs">
-      <button class="nav-tab active" onclick="showPage('workout', this)">Workout</button>
-      <button class="nav-tab" onclick="showPage('progress', this)">Progress</button>
-      <button class="nav-tab" onclick="showPage('history', this)">History</button>
-      <button class="nav-tab" onclick="showPage('settings', this)">Settings</button>
-      <div style="flex: 1;"></div>
-      <div class="header-timer" id="workoutTimer" style="display:none; margin-right: 12px;">0:00</div>
-      <button class="start-btn" id="startBtn" onclick="toggleWorkout()" style="margin: 12px 24px 12px 0;">Start Workout</button>
-    </div>
+  <main id="view" tabindex="-1"></main>
+  <button id="resumeBar" data-act="resume" hidden></button>
+  <div id="rest" hidden role="timer" aria-label="Rest timer">
+    <span class="label">Rest</span><strong id="restTime">0:00</strong>
+    <button data-act="rest-add">+30s</button><button data-act="rest-skip">Skip</button>
   </div>
-
-  <div class="content active" id="workoutPage"></div>
-  <div class="content" id="progressPage"></div>
-  <div class="content" id="historyPage"></div>
-  <div class="content" id="settingsPage"></div>
-</div>
-
-<div class="timer-display" id="timerDisplay">
-  <div class="timer-time" id="timerTime">0:00</div>
-  <div class="timer-label">Rest</div>
-  <div class="timer-controls">
-    <button class="timer-btn" onclick="toggleTimer()">Pause</button>
-    <button class="timer-btn" onclick="skipTimer()">Skip</button>
-  </div>
-  <button class="timer-close" onclick="skipTimer()">×</button>
-</div>
-
-<div class="modal-overlay" id="endWorkoutModal" style="display: none;">
-  <div class="modal" style="max-width: 400px;">
-    <h2>End Workout</h2>
-    <p>Do you want to save this workout or discard it?</p>
-    <div class="modal-buttons">
-      <button class="modal-btn" onclick="discardWorkout()">Discard</button>
-      <button class="modal-btn save" onclick="saveAndEndWorkout()">Save</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="swapExerciseModal" style="display: none;">
-  <div class="modal" style="max-width: 500px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-      <h2>Swap Exercise</h2>
-      <button class="modal-btn" onclick="closeSwapModal()" style="background: transparent; border: none; color: #e0e0e0; font-size: 24px; padding: 0; width: auto; min-width: auto;">×</button>
-    </div>
-    <div id="swapExerciseContent"></div>
-  </div>
-</div>
-
-<script src="src/data/config.js" defer></script>
-<script src="src/app.js" defer></script>
-
-
+  <nav id="nav" aria-label="Main"></nav>
+  <div id="sheet" hidden></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <noscript><p style="padding:24px">This app needs JavaScript.</p></noscript>
+  <script type="module" src="src/main.js"></script>
 </body>
 </html>
