@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "workout-app",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-File", "C:\\Users\\Hayden\\AppData\\Local\\Temp\\claude\\C--Users-Hayden-My-Files-Github-workout-app\\37c836eb-7b3f-4cdc-9134-6ad412bcc39a\\scratchpad\\serve.ps1"],
+      "port": 8080
+    }
+  ]
+}

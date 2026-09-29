@@ -45,6 +45,16 @@ export function renderSettings(s) {
     <p class="muted small center">Workout Tracker · v4 · works offline once loaded</p>`;
 }
 
+const LB_PER_KG = 2.20462;
+function convertWeights(s, factor) {
+  const conv = v => (v ? Math.round(v * factor * 10) / 10 : v);
+  const sets = [...s.sessions, ...(s.active ? [s.active] : [])].flatMap(x => x.exercises.flatMap(e => e.sets));
+  sets.forEach(set => { set.w = conv(set.w); });
+  s.active?.exercises.forEach(e => { e.inc = conv(e.inc); if (e.rx?.w) { e.rx.w = conv(e.rx.w); } if (e.hint?.w) e.hint.w = conv(e.hint.w); });
+  s.bodyLog.forEach(b => { b.w = conv(b.w); });
+  s.settings.bodyWeight = conv(s.settings.bodyWeight);
+}
+
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.dataset?.inc) return mutate(s => { s.settings.increments[t.dataset.inc] = Math.max(0.25, num(t.value) || DEFAULT_INCREMENTS[s.settings.unit][t.dataset.inc]); });
@@ -55,9 +65,12 @@ document.addEventListener('change', e => {
   commit(s => {
     if (t.type === 'checkbox') s.settings[key] = t.checked;
     else if (key === 'unit') {
+      if (t.value === s.settings.unit) return;
+      const convert = confirm(`Convert your existing weights to ${t.value} too?\n\nOK = convert history, body weight and any workout in progress.\nCancel = just change the label.`);
+      if (convert) convertWeights(s, t.value === 'kg' ? 1 / LB_PER_KG : LB_PER_KG);
       s.settings.unit = t.value;
       s.settings.increments = { ...DEFAULT_INCREMENTS[t.value] };
-      toast('Unit label changed. Existing numbers are not converted.', 4000);
+      toast(convert ? 'Converted to ' + t.value : 'Unit label changed. Numbers left as they were.', 3500);
     } else s.settings[key] = t.value || null;
   });
 });
