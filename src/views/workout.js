@@ -40,16 +40,10 @@ function exerciseCard(s, ex, ei, total, tail) {
   const rows = ex.sets.map((set, i) => setRow(ex, set, i, sug, unit, set.warmup ? 0 : ++n)).join('');
   const pl = ex.equipment === 'barbell' && rx.w > 0 ? platesPerSide(rx.w, unit) : null;
   const plates = pl?.length ? `<p class="muted small">Per side: ${pl.join(' + ')}</p>` : '';
-  const anyDone = ex.sets.some(x => x.done);
-  return `<section class="card ex${ex.ss ? " ss" : ""}${tail ? " ss-tail" : ""}" data-ex="${ex.uid}">
+  return `<section class="card ex${ex.ss ? ' ss' : ''}${tail ? ' ss-tail' : ''}" data-ex="${ex.uid}">
     <div class="row between top">
-      <div><h3><button class="name-btn" data-act="ex-detail" data-id="${esc(ex.exId)}">${esc(ex.name)}</button></h3><p class="muted small">${esc(cap(ex.primary) || 'Custom')}</p></div>
-      <div class="row tools">
-        <button class="icon-btn" data-act="move-ex" data-dir="-1" data-ex="${ex.uid}" ${ei === 0 ? 'disabled' : ''} aria-label="Move up">↑</button>
-        <button class="icon-btn" data-act="move-ex" data-dir="1" data-ex="${ex.uid}" ${ei === total - 1 ? 'disabled' : ''} aria-label="Move down">↓</button>
-        <button class="icon-btn" data-act="swap-ex" data-ex="${ex.uid}" ${anyDone ? 'disabled' : ''} aria-label="Swap exercise">⇄</button>
-        <button class="icon-btn" data-act="remove-ex" data-ex="${ex.uid}" aria-label="Remove exercise">✕</button>
-      </div>
+      <div class="grow"><h3><button class="name-btn" data-act="ex-detail" data-id="${esc(ex.exId)}">${esc(ex.name)}</button></h3><p class="muted small">${esc(cap(ex.primary) || 'Custom')}${ex.ss ? ' · superset' : ''}</p></div>
+      <button class="icon-btn" data-act="ex-menu" data-ex="${ex.uid}" aria-label="Exercise options">⋯</button>
     </div>
     <div class="target"><strong>${esc(target)}</strong><span class="muted small">${esc(rx.reason)}</span></div>
     ${plates}
@@ -57,12 +51,10 @@ function exerciseCard(s, ex, ei, total, tail) {
     ${ex.hint ? `<div class="hint">${esc(ex.hint.msg)}</div>` : ''}
     <div class="set head"><span>Set</span><span>${isHeavy(ex) ? unit : 'Added ' + unit}</span><span>Reps</span><span>RIR</span><span></span></div>
     ${rows}
-    <div class="row gap">
+    <div class="row add-row">
       <button class="btn small" data-act="add-set" data-ex="${ex.uid}">＋ Set</button>
       <button class="btn small" data-act="remove-set" data-ex="${ex.uid}" ${ex.sets.length <= 1 ? 'disabled' : ''}>− Set</button>
-      ${ei < total - 1 ? `<button class="btn small ${ex.ss ? "on" : ""}" data-act="superset" data-ex="${ex.uid}" aria-pressed="${!!ex.ss}">Superset</button>` : ""}
-    </div>
-    <div class="row note-row"><input class="note" data-note="${ex.uid}" placeholder="Note" maxlength="200" value="${esc(ex.note || "")}">
+      <input class="note" data-note="${ex.uid}" placeholder="Note" maxlength="200" value="${esc(ex.note || '')}" aria-label="Note">
     </div>
   </section>`;
 }
@@ -141,3 +133,21 @@ actions['confirm-finish'] = () => {
     <button class="btn primary block" data-act="close-sheet">Done</button>`);
 };
 actions['superset'] = el => S.toggleSuperset(el.dataset.ex);
+
+actions['ex-menu'] = el => {
+  const a = getState().active;
+  const i = a.exercises.findIndex(x => x.uid === el.dataset.ex);
+  const ex = a.exercises[i];
+  if (!ex) return;
+  const item = (act, label, extra = '', off = false) => `<button class="rowbtn" data-act="menu-do" data-do="${act}" data-ex="${ex.uid}" ${extra} ${off ? 'disabled' : ''}><span>${label}</span></button>`;
+  openSheet(`<div class="sheet-head"><h2>${esc(ex.name)}</h2><button class="icon-btn" data-act="close-sheet" aria-label="Close">✕</button></div>
+    ${item('move-ex', 'Move up', 'data-dir="-1"', i === 0)}
+    ${item('move-ex', 'Move down', 'data-dir="1"', i === a.exercises.length - 1)}
+    ${item('superset', ex.ss ? 'Unlink superset with next' : 'Superset with next exercise', '', i === a.exercises.length - 1)}
+    ${item('swap-ex', 'Swap exercise', '', ex.sets.some(x => x.done))}
+    ${item('remove-ex', '<span style="color:var(--red)">Remove from workout</span>')}`);
+};
+actions['menu-do'] = el => {
+  closeSheet();
+  actions[el.dataset.do](el);
+};

@@ -41,6 +41,7 @@ function render() {
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg><span>${label}</span></button>`).join('');
   const bar = $('#resumeBar');
   bar.hidden = !(s.active && ui.tab !== 'workout');
+  document.body.classList.toggle('has-resume', !bar.hidden);
   if (!bar.hidden) bar.textContent = `Workout in progress · ${s.active.name} · tap to resume`;
   if (storageError) toast('Could not save. Storage may be full or blocked; export a backup.', 6000);
   syncWakeLock();

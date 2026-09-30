@@ -1,4 +1,4 @@
-import { esc, uid, isoDate, fmtDate, startOfWeek, fmtNum } from '../util.js';
+import { esc, uid, isoDate, fmtDate, startOfWeek, addDays, fmtNum } from '../util.js';
 import { actions, ui } from '../ui.js';
 import { getState, commit, activeProgram, programFromTemplate } from '../store.js';
 import { getExercise } from '../catalog.js';
@@ -19,12 +19,24 @@ function onboarding() {
   </section>`;
 }
 
+function weekStrip(s, today) {
+  const start = startOfWeek(today);
+  const trained = new Set(s.sessions.map(x => x.date));
+  const cells = Array.from({ length: 7 }, (_, i) => {
+    const d = addDays(start, i);
+    const label = fmtDate(d, { weekday: 'short' }).slice(0, 3);
+    return `<div class="wd ${d === today ? 'today' : ''} ${trained.has(d) ? 'done' : ''}" aria-label="${esc(fmtDate(d, { weekday: 'long', month: 'long', day: 'numeric' }))}${trained.has(d) ? ', trained' : ''}">
+      <span>${esc(label)}</span><b>${Number(d.slice(8))}</b><i></i></div>`;
+  }).join('');
+  return `<div class="week" role="group" aria-label="This week">${cells}</div>`;
+}
+
 export function renderToday(s) {
   const plan = currentPlan(s);
   const prog = activeProgram(s);
   const unit = s.settings.unit;
   const today = isoDate();
-  let html = `<header class="page-head"><div><p class="eyebrow">${esc(fmtDate(today, { weekday: 'long', month: 'long', day: 'numeric' }))}</p></div></header>`;
+  let html = `<header class="page-head"><div><p class="eyebrow">${esc(fmtDate(today, { weekday: 'long', month: 'long', day: 'numeric' }))}</p></div></header>${weekStrip(s, today)}`;
 
   if (s.active) {
     const all = s.active.exercises.flatMap(e => e.sets.filter(x => !x.warmup));
@@ -36,15 +48,15 @@ export function renderToday(s) {
   html += `<section class="card phase ${plan.isDeload ? 'deload' : ''}">
     <div class="row between"><span class="pill">${esc(plan.phase)}</span><strong>${esc(plan.label)}</strong></div>
     <p class="muted">${esc(plan.note)}</p>
-    <div class="chips"><span class="chip">Target ${plan.rir} RIR</span><span class="chip">${plan.isDeload ? 'Half volume' : plan.ramp ? `+${plan.ramp} set${plan.ramp > 1 ? 's' : ''} per exercise` : 'Base volume'}</span></div>
+    <div class="chips"><span class="chip">${plan.rir} RIR</span>${plan.isDeload ? "<span class=\"chip\">Half volume</span>" : plan.ramp ? `<span class="chip">+${plan.ramp} set${plan.ramp > 1 ? "s" : ""} per exercise</span>` : ""}</div>
   </section>`;
 
   if (!prog) return html + onboarding();
 
   if (!plan.isDeload && !s.active) {
     const low = plan.easy;
-    html += `<section class="card"><div class="row between"><div><h3>How do you feel today?</h3><p class="muted small">Run-down days get an extra rep in reserve and fewer sets.</p></div>
-      <div class="seg"><button class="${low ? '' : 'on'}" data-act="readiness" data-v="ok">Good</button><button class="${low ? 'on' : ''}" data-act="readiness" data-v="low">Run down</button></div></div></section>`;
+    html += `<section class="card slim"><div class="row between"><h3>Feeling today</h3>
+      <div class="seg"><button class="${low ? "" : "on"}" data-act="readiness" data-v="ok">Good</button><button class="${low ? "on" : ""}" data-act="readiness" data-v="low">Run down</button></div></div></section>`;
   }
 
   if (plan.goal !== 'peaking' && !plan.isDeload) {

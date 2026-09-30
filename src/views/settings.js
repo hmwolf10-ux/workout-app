@@ -5,58 +5,70 @@ import { DEFAULT_INCREMENTS, GOALS, INC_CLASSES } from '../defaults.js';
 import { planFor } from '../engine.js';
 
 const opt = (list, cur) => Object.entries(list).map(([k, v]) => `<option value="${k}" ${k === cur ? 'selected' : ''}>${esc(v)}</option>`).join('');
-const check = (key, on, label, help = '') => `<label class="check-row"><input type="checkbox" data-st="${key}" ${on ? 'checked' : ''}><span>${esc(label)}${help ? `<small>${esc(help)}</small>` : ''}</span></label>`;
+const toggle = (key, on, label, help = '') => `<label class="srow"><span>${esc(label)}${help ? `<small>${esc(help)}</small>` : ''}</span><input type="checkbox" data-st="${key}" ${on ? 'checked' : ''}></label>`;
+const row = (label, control, help = '') => `<label class="srow"><span>${esc(label)}${help ? `<small>${esc(help)}</small>` : ''}</span>${control}</label>`;
 
 export function renderSettings(s) {
   const st = s.settings;
   const plan = planFor(st, isoDate());
   const peaking = st.goal === 'peaking';
-  return `<header class="page-head"><div><p class="eyebrow">Training model &amp; data</p></div></header>
-    <section class="card"><h3>Appearance</h3>
-      <p class="muted small">Choose how the app looks on this device.</p>
-      <div class="chips">${[['light', 'Light'], ['dark', 'Dark']].map(([v, l]) => `<button class="chip" data-act="theme" data-v="${v}" aria-pressed="${currentTheme() === v}">${l}</button>`).join('')}</div>
-    </section>
-    <section class="card"><h3>Goal</h3>
-      <label class="field">Training goal<select data-st="goal">${opt(GOALS, st.goal)}</select></label>
-      <p class="muted small">${{
-        hypertrophy: 'Uses each exercise’s rep range, ramps effort from 3 to 1 RIR across the block, adds sets over time and ends with a deload.',
-        strength: 'Main barbell lifts move to 3–6 reps with longer rests; accessories keep hypertrophy ranges.',
-        peaking: 'Counts down to your event: accumulation, intensification, realization, then a taper. Main lifts drop to low reps.',
-      }[st.goal]}</p>
-      ${peaking ? `<label class="field">Event date<input type="date" data-st="peakDate" value="${esc(st.peakDate || '')}"></label>` : ''}
-      <p class="muted small">Right now: <strong>${esc(plan.label)}</strong> · target ${plan.rir} RIR</p>
-    </section>
-    ${peaking ? '' : `<section class="card"><h3>Training block</h3>
-      <label class="field">Build weeks before deload<input type="number" min="2" max="8" data-st="mesoLength" value="${st.mesoLength}"></label>
-      ${check('deload', st.deload, 'Deload week after each block', 'Half the sets at easy effort.')}
-      ${st.goal === 'hypertrophy' ? check('rampVolume', st.rampVolume, 'Add sets as the block progresses', 'Up to +2 sets per exercise.') : ''}
-      <button class="btn" data-act="restart-block">Restart block this week</button>
-    </section>`}
-    <section class="card"><h3>Units &amp; loading</h3>
-      <label class="field">Units<select data-st="unit"><option value="lb" ${st.unit === 'lb' ? 'selected' : ''}>Pounds (lb)</option><option value="kg" ${st.unit === 'kg' ? 'selected' : ''}>Kilograms (kg)</option></select></label>
-      <label class="field">Body weight (${st.unit})<input type="number" step="0.1" data-st="bodyWeight" value="${st.bodyWeight}"></label>
-      <p class="muted small">Smallest jump you can make for each kind of equipment. Load targets are rounded to these.</p>
-      <div class="two">${Object.entries(INC_CLASSES).map(([k, label]) => `<label class="field">${esc(label)}<input type="number" step="0.25" min="0.25" data-inc="${k}" value="${st.increments[k]}"></label>`).join('')}</div>
-      ${check('showWarmups', st.showWarmups, 'Suggest warm-up sets', 'For compound lifts at working weights.')}
-      ${check('restAlert', st.restAlert, 'Sound and vibrate when rest ends')}
-    </section>
-    <section class="card"><details class="learn"><summary>Training basics this app is built on</summary>
-      <ul class="muted small">
-        <li><strong>Volume:</strong> roughly 10–20 hard sets per muscle per week works for most people. More than that shows diminishing returns.</li>
-        <li><strong>Effort:</strong> finishing sets with 0–3 reps in reserve builds muscle about as well as going to failure, with less fatigue.</li>
-        <li><strong>Frequency:</strong> hit each muscle about twice a week; it mainly helps you spread volume.</li>
-        <li><strong>Rest:</strong> 2–3 minutes between heavy compound sets, about a minute for small isolation work.</li>
-        <li><strong>Progression:</strong> add reps, then load. Small steady jumps beat big rare ones.</li>
-        <li><strong>Stretch:</strong> exercises that load a muscle at long length (incline curls, overhead extensions, Romanian deadlifts) look especially good for growth.</li>
-        <li><strong>Outside the gym:</strong> protein around 1.6–2.2 g per kg of body weight, 7–9 hours of sleep, and a deload when progress stalls.</li>
-      </ul><p class="muted small">General guidance from the exercise-science literature, not medical advice.</p></details></section>
-    <section class="card"><h3>Your data</h3>
-      <p class="muted small">Everything is stored on this device only. Export a backup now and then — browsers can clear site data.</p>
-      <div class="row gap"><button class="btn primary" data-act="export">Export backup</button><button class="btn" data-act="import">Import backup</button></div>
+  const goalHelp = {
+    hypertrophy: 'Rep ranges per exercise, effort ramps 3 → 1 RIR across the block, sets build up, then a deload.',
+    strength: 'Main barbell lifts move to 3–6 reps with longer rests. Accessories keep hypertrophy ranges.',
+    peaking: 'Counts down to your event: accumulation, intensification, realization, then a taper.',
+  }[st.goal];
+  return `<div class="glabel">Training</div>
+    <div class="group">
+      ${row('Goal', `<select data-st="goal" aria-label="Training goal">${opt(GOALS, st.goal)}</select>`)}
+      ${peaking ? row('Event date', `<input type="date" data-st="peakDate" value="${esc(st.peakDate || '')}" aria-label="Event date">`) : ''}
+      <p class="gnote">${esc(goalHelp)} Right now: <strong>${esc(plan.label)}</strong>, target ${plan.rir} RIR.</p>
+      ${peaking ? '' : `${row('Weeks before deload', `<input type="number" inputmode="numeric" min="2" max="8" data-st="mesoLength" value="${st.mesoLength}" aria-label="Build weeks before deload">`)}
+      ${toggle('deload', st.deload, 'Deload week', 'Half the sets at easy effort after each block.')}
+      ${st.goal === 'hypertrophy' ? toggle('rampVolume', st.rampVolume, 'Add sets through the block', 'Up to +2 sets per exercise.') : ''}
+      <button class="srow" data-act="restart-block"><span>Restart block this week</span></button>`}
+    </div>
+
+    <div class="glabel">Workout</div>
+    <div class="group">
+      ${row('Units', `<select data-st="unit" aria-label="Units"><option value="lb" ${st.unit === 'lb' ? 'selected' : ''}>Pounds (lb)</option><option value="kg" ${st.unit === 'kg' ? 'selected' : ''}>Kilograms (kg)</option></select>`)}
+      ${row('Body weight', `<input type="number" inputmode="decimal" step="0.1" data-st="bodyWeight" value="${st.bodyWeight}" aria-label="Body weight ${st.unit}">`, `For bodyweight lifts, in ${st.unit}`)}
+      ${toggle('showWarmups', st.showWarmups, 'Warm-up sets', 'Suggested for compound lifts.')}
+      ${toggle('restAlert', st.restAlert, 'Rest timer alert', 'Sound and vibration when rest ends.')}
+      <details><summary class="srow"><span>Load increments<small>Smallest jump per equipment type</small></span></summary>
+        <div class="incs">${Object.entries(INC_CLASSES).map(([k, label]) => row(label, `<input type="number" inputmode="decimal" step="0.25" min="0.25" data-inc="${k}" value="${st.increments[k]}" aria-label="${esc(label)} step">`)).join('')}</div>
+      </details>
+    </div>
+
+    <div class="glabel">Your data</div>
+    <div class="group">
+      <p class="gnote" style="border-top:0">Everything is stored on this device only. Export a backup now and then; browsers can clear site data.</p>
+      <button class="srow" data-act="export"><span>Export backup</span></button>
+      <button class="srow" data-act="import"><span>Import backup</span></button>
       <input id="importFile" type="file" accept=".json,application/json" hidden>
-      <button class="btn danger block" data-act="reset-all">Erase all data</button>
-    </section>
-    <p class="muted small center">Workout Tracker · v4 · works offline once loaded</p>`;
+      <button class="srow danger" data-act="reset-all"><span>Erase all data</span></button>
+    </div>
+
+    <div class="glabel">Appearance</div>
+    <div class="group">
+      <div class="srow"><span>Theme</span><div class="seg">${[['light', 'Light'], ['dark', 'Dark']].map(([v, l]) => `<button class="${currentTheme() === v ? 'on' : ''}" data-act="theme" data-v="${v}" aria-pressed="${currentTheme() === v}">${l}</button>`).join('')}</div></div>
+    </div>
+
+    <div class="glabel">About</div>
+    <div class="group">
+      <details><summary class="srow"><span>Training basics this app is built on</span></summary>
+        <ul class="muted small" style="margin:0;padding:10px 16px 10px 32px">
+          <li><strong>Volume:</strong> roughly 10–20 hard sets per muscle per week works for most people.</li>
+          <li><strong>Effort:</strong> ending sets with 0–3 reps in reserve builds muscle about as well as failure, with less fatigue.</li>
+          <li><strong>Frequency:</strong> about twice a week per muscle mainly helps you spread volume.</li>
+          <li><strong>Rest:</strong> 2–3 minutes for heavy compounds, about a minute for isolation.</li>
+          <li><strong>Progression:</strong> add reps, then load, in small steady steps.</li>
+          <li><strong>Stretch:</strong> exercises that load a long muscle (incline curls, overhead extensions, Romanian deadlifts) look especially good.</li>
+          <li><strong>Outside the gym:</strong> protein around 1.6–2.2 g per kg, 7–9 hours of sleep, deload when progress stalls.</li>
+        </ul>
+        <p class="gnote" style="border-top:0">General guidance from the exercise-science literature, not medical advice.</p>
+      </details>
+      <p class="gnote">Workout Tracker · works offline once loaded</p>
+    </div>`;
 }
 
 const currentTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
@@ -65,7 +77,7 @@ actions['theme'] = el => {
   try { localStorage.setItem('wk.theme', v); } catch { /* storage blocked */ }
   document.documentElement.dataset.theme = v;
   document.querySelector('meta[name=theme-color]').content = v === 'dark' ? '#0e131b' : '#f3f5f9';
-  document.querySelectorAll('[data-act=theme]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+  document.querySelectorAll('[data-act=theme]').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.v === v)); b.classList.toggle('on', b.dataset.v === v); });
 };
 
 const LB_PER_KG = 2.20462;
