@@ -1,4 +1,4 @@
-import { $, esc, fmtNum, fmtDur, fmtK, cap } from '../util.js';
+import { $, esc, fmtNum, fmtDur, fmtK, cap, fmtDate } from '../util.js';
 import { actions, ui, openSheet, closeSheet, toast } from '../ui.js';
 import { getState, commit } from '../store.js';
 import { historyFor, platesPerSide } from '../engine.js';
@@ -11,7 +11,7 @@ function lastLine(s, ex) {
   const h = historyFor(s.sessions, ex.exId).slice(-1)[0];
   if (!h) return '';
   const txt = h.sets.map(x => `${x.w ? fmtNum(x.w) + '×' : ''}${x.r}`).join(', ');
-  return `<p class="last">Last (${esc(h.date.slice(5))}): ${esc(txt)}</p>`;
+  return `<p class="last">Last (${esc(fmtDate(h.date, { month: 'short', day: 'numeric' }))}): ${esc(txt)}</p>`;
 }
 
 function setRow(ex, set, i, sug, unit, n) {
@@ -81,7 +81,7 @@ actions['toggle-set'] = el => {
   const row = rowOf(el);
   const res = S.toggleSet(row.dataset.ex, Number(row.dataset.i), readVals(row));
   if (!res.ok) toast(res.msg || 'Enter the reps first');
-  else if (res.pr) toast('🏆 ' + res.pr);
+  else if (res.pr) toast('New record: ' + res.pr);
 };
 document.addEventListener('change', e => {
   const f = e.target.dataset?.f;
@@ -117,8 +117,9 @@ actions['finish'] = () => {
     if (confirm('No sets logged. Discard this workout?')) { ui.tab = 'today'; S.discardWorkout(); }
     return;
   }
+  const typed = a.exercises.flatMap(e => e.sets.filter(x => !x.done && !x.warmup && x.r)).length;
   openSheet(`<div class="sheet-head"><h2>Finish workout?</h2></div>
-    <p>${done} working set${done === 1 ? '' : 's'} logged. Unfinished sets are dropped.</p>
+    <p>${done} working set${done === 1 ? '' : 's'} logged.${typed ? ` <strong>${typed} set${typed === 1 ? ' has' : 's have'} numbers but ${typed === 1 ? 'isn’t' : 'aren’t'} checked off and won’t be saved.</strong>` : ' Sets you didn’t check off are dropped.'}</p>
     <div class="row gap"><button class="btn" data-act="close-sheet">Keep training</button><button class="btn primary" data-act="confirm-finish">Save workout</button></div>`);
 };
 actions['confirm-finish'] = () => {
@@ -127,9 +128,9 @@ actions['confirm-finish'] = () => {
   closeSheet();
   if (!r) return;
   const prs = r.session.exercises.flatMap(e => e.sets.filter(x => x.pr).map(x => `${e.name}: ${x.pr}`));
-  openSheet(`<div class="sheet-head"><h2>Nice work 💪</h2><button class="icon-btn" data-act="close-sheet" aria-label="Close">✕</button></div>
+  openSheet(`<div class="sheet-head"><h2>Workout saved</h2><button class="icon-btn" data-act="close-sheet" aria-label="Close">✕</button></div>
     <div class="stats3"><div><strong>${r.stats.sets}</strong><span>sets</span></div><div><strong>${fmtK(r.stats.volume)}</strong><span>${getState().settings.unit} volume</span></div><div><strong>${fmtDur(r.stats.duration)}</strong><span>time</span></div></div>
-    ${prs.length ? `<h3>Records</h3><ul class="plain">${prs.map(p => `<li>🏆 ${esc(p)}</li>`).join('')}</ul>` : ''}
+    ${prs.length ? `<h3>Records</h3><ul class="plain">${prs.map(p => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}
     <button class="btn primary block" data-act="close-sheet">Done</button>`);
 };
 actions['superset'] = el => S.toggleSuperset(el.dataset.ex);

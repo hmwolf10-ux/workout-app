@@ -47,11 +47,12 @@ export function buildEntry(s, ex, opts = {}, plan = currentPlan(s)) {
 
 function newActive(name, extra = {}) {
   const plan = currentPlan();
-  return { id: uid(), date: isoDate(), name, startedAt: Date.now(), restEnd: null, planLabel: plan.label, exercises: [], ...extra };
+  return { id: uid(), date: isoDate(), name, created: Date.now(), startedAt: null, lastSetAt: null, restEnd: null, planLabel: plan.label, exercises: [], ...extra };
 }
 
 export function startWorkout(programId, dayId) {
   commit(s => {
+    if (s.active) return;
     const day = getProgram(s, programId)?.days.find(d => d.id === dayId);
     if (!day) return;
     const plan = currentPlan(s);
@@ -64,11 +65,12 @@ export function startWorkout(programId, dayId) {
 }
 
 export function startQuick() {
-  commit(s => { s.active = newActive('Quick workout'); });
+  commit(s => { if (!s.active) s.active = newActive('Quick workout'); });
 }
 
 export function startFromSession(sessionId) {
   commit(s => {
+    if (s.active) return;
     const src = s.sessions.find(x => x.id === sessionId);
     if (!src) return;
     const plan = currentPlan(s);
@@ -108,13 +110,17 @@ export function toggleSet(exUid, idx, vals) {
     set.w = w ?? 0; set.r = r;
     if (!set.warmup) set.rir = num(vals.rir) ?? set.rir ?? ex.rx.rir;
     set.done = true;
+    // the clock starts with the first logged set, not when the screen opens
+    s.active.startedAt ??= Date.now();
+    s.active.lastSetAt = Date.now();
+    const finished = s.active.exercises.every(e => e.sets.every(x => x.done || x.warmup));
     if (!set.warmup) {
       const bw = ex.type === 'bodyweight' ? s.settings.bodyWeight : 0;
       set.pr = prCheck(historyFor(s.sessions, ex.exId), set, bw);
       ex.hint = nextSetHint(set, ex.rx, ex.inc);
     }
     // first half of a superset: go straight to the partner, rest after the pair
-    s.active.restEnd = ex.ss && !set.warmup ? null : Date.now() + (set.warmup ? 45 : ex.rest) * 1000;
+    s.active.restEnd = (ex.ss && !set.warmup) || finished ? null : Date.now() + (set.warmup ? 45 : ex.rest) * 1000;
     result = { ok: true, pr: set.pr, hint: ex.hint?.msg };
   });
   return result;
@@ -180,7 +186,7 @@ export function finishWorkout() {
       sets: e.sets.filter(x => x.done).map(x => ({ w: x.w, r: x.r, rir: x.rir, done: true, warmup: !!x.warmup, pr: x.pr || null })),
     })).filter(e => e.sets.some(x => !x.warmup));
     if (exercises.length) {
-      session = { id: a.id, date: a.date, name: a.name, programId: a.programId, dayId: a.dayId, startedAt: a.startedAt, endedAt: Date.now(), planLabel: a.planLabel, exercises };
+      session = { id: a.id, date: a.date, name: a.name, programId: a.programId, dayId: a.dayId, startedAt: a.startedAt, endedAt: Math.min(Date.now(), (a.lastSetAt || Date.now()) + 10 * 60000), planLabel: a.planLabel, exercises };
       s.sessions.push(session);
       sortSessions(s);
     }

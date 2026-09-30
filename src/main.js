@@ -40,7 +40,7 @@ function render() {
   $('#nav').innerHTML = TABS.map(([id, label, d]) => `<button data-act="nav" data-tab="${id}" ${ui.tab === id ? 'aria-current="page"' : ''}>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg><span>${label}</span></button>`).join('');
   const bar = $('#resumeBar');
-  bar.hidden = !(s.active && ui.tab !== 'workout');
+  bar.hidden = !(s.active && ui.tab !== 'workout' && ui.tab !== 'today');
   document.body.classList.toggle('has-resume', !bar.hidden);
   if (!bar.hidden) bar.textContent = `Workout in progress · ${s.active.name} · tap to resume`;
   if (storageError) toast('Could not save. Storage may be full or blocked; export a backup.', 6000);
@@ -65,7 +65,7 @@ function alertRestOver() {
 function tick() {
   const a = getState().active;
   const el = $('#elapsed');
-  if (el && a) el.textContent = fmtDur((Date.now() - a.startedAt) / 1000);
+  if (el && a) el.textContent = a.startedAt ? fmtDur((Date.now() - a.startedAt) / 1000) : '0:00';
   const rest = $('#rest');
   if (!a?.restEnd || ui.tab !== 'workout') { rest.hidden = true; return; }
   const ms = a.restEnd - Date.now();
@@ -109,6 +109,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetOpen(
 
 /* ---------- boot ---------- */
 const state = initStore();
+// reopen straight into a workout that is still fresh; an abandoned one waits behind the resume card
+if (state.active && Date.now() - (state.active.lastSetAt || state.active.startedAt || state.active.created || 0) < 12 * 3600e3) ui.tab = 'workout';
 subscribe(render);
 render();
 if (state.meta?.migrated) {

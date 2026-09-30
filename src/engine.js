@@ -120,6 +120,10 @@ export function prescribe(ex, hist, plan, cfg) {
   const tops = hist.map(h => topSet(h.sets, bw)).filter(Boolean);
   const base = { lo, hi, rir: rirT };
 
+  if (!tops.length && ex.type === 'bodyweight') {
+    return { ...base, w: 0, r: Math.round((lo + hi) / 2), basis: 'none',
+      reason: `Start with bodyweight. Once you can do ${hi} clean reps, add a little weight.` };
+  }
   if (!tops.length) {
     return { ...base, w: null, r: Math.round((lo + hi) / 2), basis: 'none',
       reason: `No history yet. Pick a load where ${lo}–${hi} reps leaves about ${rirT} in reserve; this session calibrates future targets.` };

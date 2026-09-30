@@ -16,7 +16,7 @@ export function renderHistory(s) {
     const prs = x.exercises.reduce((n, e) => n + e.sets.filter(t => t.pr).length, 0);
     html += `<button class="card hcard" data-act="open-session" data-id="${x.id}">
       <div class="row between"><strong>${esc(x.name)}</strong><span class="muted">${esc(fmtDate(x.date))}</span></div>
-      <div class="chips"><span class="chip">${st.sets} sets</span><span class="chip">${fmtK(st.volume)} ${s.settings.unit}</span>${st.duration ? `<span class="chip">${fmtDur(st.duration)}</span>` : ''}${prs ? `<span class="chip">🏆 ${prs}</span>` : ''}</div>
+      <div class="chips"><span class="chip">${st.sets} sets</span><span class="chip">${fmtK(st.volume)} ${s.settings.unit}</span>${st.duration ? `<span class="chip">${fmtDur(st.duration)}</span>` : ''}${prs ? `<span class="chip">${prs} PR${prs === 1 ? "" : "s"}</span>` : ''}</div>
       <p class="muted small">${esc(x.exercises.map(e => e.name).join(' · '))}</p></button>`;
   }
   return html;

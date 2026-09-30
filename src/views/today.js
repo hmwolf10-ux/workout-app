@@ -5,9 +5,10 @@ import { getExercise } from '../catalog.js';
 import { TEMPLATES } from '../defaults.js';
 import { templateList } from './plan.js';
 import { nextDayIndex, stalledExercises } from '../engine.js';
-import { buildEntry, currentPlan, startWorkout, startQuick, setReadiness } from '../session.js';
+import { buildEntry, currentPlan, startWorkout, startQuick, setReadiness, addExerciseToActive } from '../session.js';
+import { openExercisePicker } from '../pickers.js';
 
-const rxText = (rx, unit) => (rx.w == null ? `find ${rx.lo}–${rx.hi} rep load` : `${rx.w > 0 ? fmtNum(rx.w) + ' ' + unit + ' × ' : ''}${rx.r}`);
+const rxText = (rx, unit) => (rx.w == null ? `${rx.lo}–${rx.hi}` : `${rx.w > 0 ? fmtNum(rx.w) + ' ' + unit + ' × ' : ''}${rx.r}`);
 
 function onboarding() {
   return `<div class="glabel">Choose a program</div>
@@ -66,7 +67,7 @@ export function renderToday(s) {
   }
 
   const idx = nextDayIndex(prog, s.sessions);
-  const day = prog.days[idx];
+  const day = s.active ? null : prog.days[idx];
   if (day) {
     const rows = day.exercises.map(e => {
       const ex = getExercise(s, e.exId);
@@ -84,7 +85,7 @@ export function renderToday(s) {
         `<button class="chip btn-chip" data-act="start-day" data-prog="${prog.id}" data-day="${d.id}" ${s.active ? 'disabled' : ''}>${esc(d.name)}</button>`).join('')}</div></section>`;
     }
   }
-  html += `<button class="btn block" data-act="start-quick" ${s.active ? 'disabled' : ''}>＋ Quick workout (build as you go)</button>`;
+  if (!s.active) html += `<button class="btn block" data-act="start-quick">Quick workout</button>`;
 
   const week = s.sessions.filter(x => x.date >= startOfWeek(today)).length;
   html += `<p class="muted center">${week} workout${week === 1 ? '' : 's'} this week · ${s.sessions.length} total</p>`;
@@ -94,7 +95,12 @@ export function renderToday(s) {
 const begin = () => { ui.tab = 'workout'; };
 actions['resume'] = () => commit(() => begin());
 actions['start-day'] = el => { begin(); startWorkout(el.dataset.prog, el.dataset.day); };
-actions['start-quick'] = () => { begin(); startQuick(); };
+actions['start-quick'] = () => {
+  begin();
+  if (getState().active) return commit();
+  startQuick();
+  openExercisePicker({ title: 'Add exercise', onPick: addExerciseToActive });
+};
 actions['pick-template'] = el => commit(s => {
   const p = programFromTemplate(TEMPLATES.find(t => t.id === el.dataset.tpl));
   s.programs.push(p);

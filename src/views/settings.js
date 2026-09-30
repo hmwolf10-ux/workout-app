@@ -112,10 +112,16 @@ document.addEventListener('change', e => {
 });
 
 actions['restart-block'] = () => { commit(s => { s.settings.mesoStart = startOfWeek(isoDate()); }); toast('Block restarted at week 1'); };
-actions['export'] = () => {
+actions['export'] = async () => {
+  const name = `workout-backup-${isoDate()}.json`;
+  // installed phone apps often can't download blobs; the share sheet can save to Files
+  const file = new File([exportJSON()], name, { type: 'application/json' });
+  if (navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return; } catch (err) { if (err.name === 'AbortError') return; }
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([exportJSON()], { type: 'application/json' }));
-  a.download = `workout-backup-${isoDate()}.json`;
+  a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
