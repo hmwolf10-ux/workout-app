@@ -106,7 +106,7 @@ export const BUILTIN_EXERCISES = [
 const t = (exId, sets) => ({ exId, sets });
 export const TEMPLATES = [
   {
-    id: 'upper-lower', name: 'Upper / Lower', blurb: '4 days. Each muscle twice a week — a solid default for muscle gain.',
+    id: 'upper-lower', name: 'Upper / Lower', blurb: 'Balanced muscle gain',
     days: [
       { name: 'Upper A', exercises: [t('bench-press', 3), t('bent-row', 3), t('pull-ups', 2), t('db-curl', 2)] },
       { name: 'Lower A', exercises: [t('back-squat', 3), t('rdl', 3), t('leg-ext', 2), t('leg-raise', 2)] },
@@ -115,7 +115,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'ppl', name: 'Push / Pull / Legs', blurb: '3 days a week, or run it twice for 6. Good volume per session.',
+    id: 'ppl', name: 'Push / Pull / Legs', blurb: 'Classic split, easy to scale',
     days: [
       { name: 'Push', exercises: [t('bench-press', 3), t('db-shoulder-press', 3), t('incline-db', 3), t('lateral-raise', 3), t('pushdown', 3)] },
       { name: 'Pull', exercises: [t('lat-pulldown', 3), t('bent-row', 3), t('seated-row', 2), t('face-pull', 3), t('db-curl', 3)] },
@@ -123,7 +123,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'ul-lengthened', name: 'Upper / Lower · Stretch focus', blurb: '4 days. Favors movements that load the muscle when it is long, which the research links to extra growth.',
+    id: 'ul-lengthened', name: 'Upper / Lower · Stretch focus', blurb: 'Stretch-focused growth', more: true,
     days: [
       { name: 'Upper A', exercises: [t('incline-db', 3), t('lat-pulldown', 3), t('cable-lateral', 3), t('cable-oh-tri', 3), t('incline-curl', 3)] },
       { name: 'Lower A', exercises: [t('hack-squat', 3), t('rdl', 3), t('leg-curl', 3), t('seated-calf', 3), t('cable-crunch', 2)] },
@@ -132,7 +132,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'ppl6', name: 'Push / Pull / Legs × 2', blurb: '6 days. Each muscle twice a week with two different angles. High volume for experienced lifters.',
+    id: 'ppl6', name: 'Push / Pull / Legs × 2', blurb: 'High volume, for experienced lifters', more: true,
     days: [
       { name: 'Push A', exercises: [t('bench-press', 3), t('db-shoulder-press', 3), t('cable-fly', 2), t('cable-lateral', 3), t('pushdown', 3)] },
       { name: 'Pull A', exercises: [t('pull-ups', 3), t('seated-row', 3), t('rear-delt', 2), t('db-curl', 3), t('shrug', 2)] },
@@ -143,7 +143,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'full-body', name: 'Full Body', blurb: '3 days. Every session hits everything — efficient and beginner friendly.',
+    id: 'full-body', name: 'Full Body', blurb: 'Whole body each session, beginner friendly',
     days: [
       { name: 'Full A', exercises: [t('back-squat', 3), t('bench-press', 3), t('bent-row', 3), t('lateral-raise', 2), t('db-curl', 2)] },
       { name: 'Full B', exercises: [t('rdl', 3), t('ohp', 3), t('lat-pulldown', 3), t('leg-press', 2), t('pushdown', 2)] },
@@ -151,7 +151,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'strength', name: 'Strength (SBD)', blurb: '3 days built around squat, bench and deadlift. Pair with the Strength or Peaking goal.',
+    id: 'strength', name: 'Strength (SBD)', blurb: 'Squat, bench, deadlift', more: true,
     days: [
       { name: 'Squat day', exercises: [t('back-squat', 4), t('bench-press', 3), t('bent-row', 3), t('leg-raise', 2)] },
       { name: 'Bench day', exercises: [t('bench-press', 4), t('ohp', 3), t('pull-ups', 3), t('pushdown', 2)] },

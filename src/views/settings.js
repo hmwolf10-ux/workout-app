@@ -32,7 +32,7 @@ export function renderSettings(s) {
     <div class="glabel">Workout</div>
     <div class="group">
       ${row('Units', `<select data-st="unit" aria-label="Units"><option value="lb" ${st.unit === 'lb' ? 'selected' : ''}>Pounds (lb)</option><option value="kg" ${st.unit === 'kg' ? 'selected' : ''}>Kilograms (kg)</option></select>`)}
-      ${row('Body weight', `<input type="number" inputmode="decimal" step="0.1" data-st="bodyWeight" value="${st.bodyWeight}" aria-label="Body weight ${st.unit}">`, `For bodyweight lifts, in ${st.unit}`)}
+      <button class="srow" data-act="nav" data-tab="progress"><span>Body weight<small>Logged in Progress; used for bodyweight lifts</small></span><span class="val">${esc(st.bodyWeight)} ${esc(st.unit)} ›</span></button>
       ${toggle('showWarmups', st.showWarmups, 'Warm-up sets', 'Suggested for compound lifts.')}
       ${toggle('restAlert', st.restAlert, 'Rest timer alert', 'Sound and vibration when rest ends.')}
       <details><summary class="srow"><span>Load increments<small>Smallest jump per equipment type</small></span></summary>

@@ -7,6 +7,15 @@ import { volumeFromExercises } from '../engine.js';
 import { openExercisePicker } from '../pickers.js';
 import { volumeRows } from './volume.js';
 
+const tplRow = (t, act) => `<button class="trow" data-act="${act}" data-tpl="${t.id}"><span><strong>${esc(t.name)}</strong><small>${t.days.length} days · ${esc(t.blurb)}</small></span><i aria-hidden="true">›</i></button>`;
+
+// Three common programs up front; the rest sit behind "More programs".
+export function templateList(act, extra = '') {
+  const more = TEMPLATES.filter(t => t.more);
+  return `<div class="group tlist">${TEMPLATES.filter(t => !t.more).map(t => tplRow(t, act)).join('')}
+    <details><summary class="trow"><span><strong>More programs</strong><small>${more.length} more options</small></span><i aria-hidden="true">›</i></summary>${more.map(t => tplRow(t, act)).join('')}</details>${extra}</div>`;
+}
+
 export function renderPlan(s) {
   const prog = ui.planEdit && getProgram(s, ui.planEdit);
   return prog ? renderEditor(s, prog) : renderList(s);
@@ -32,10 +41,13 @@ function renderList(s) {
 
 function renderEditor(s, p) {
   const entries = [];
-  const days = p.days.map((d, di) => {
+  const sel = p.days.find(d => d.id === ui.planDay) || p.days[0];
+  p.days.forEach(d => d.exercises.forEach(e => { const ex = getExercise(s, e.exId); if (ex) entries.push({ primary: ex.primary, secondary: ex.secondary, sets: e.sets }); }));
+  const tabs = `<div class="daytabs" role="tablist">${p.days.map(d => `<button role="tab" class="${d.id === sel.id ? 'on' : ''}" aria-selected="${d.id === sel.id}" data-act="plan-day" data-day="${d.id}">${esc(d.name)}</button>`).join('')}<button class="add" data-act="plan-add-day" aria-label="Add day">＋</button></div>`;
+  const days = p.days.filter(d => d === sel).map(d => {
+    const di = p.days.indexOf(d);
     const rows = d.exercises.map((e, ei) => {
       const ex = getExercise(s, e.exId);
-      if (ex) entries.push({ primary: ex.primary, secondary: ex.secondary, sets: e.sets });
       return `<div class="prow">
         <div class="grow"><strong>${esc(ex?.name || 'Unknown exercise')}</strong>
           <span class="muted small">${esc(cap(ex?.primary) || '')}</span></div>
@@ -61,16 +73,17 @@ function renderEditor(s, p) {
   }).join('');
   return `<header class="page-head row"><button class="icon-btn" data-act="plan-back" aria-label="Back">‹</button>
       <input class="title-input big" data-pn="prog" value="${esc(p.name)}" maxlength="40" aria-label="Program name"></header>
-    <p class="muted small">Rep boxes are optional: leave blank to use each exercise's default range (and the goal's range in Strength / Peaking).</p>
+    ${tabs}
     ${days}
-    <button class="btn block" data-act="plan-add-day">＋ Add day</button>
-    <section class="card"><h3>Weekly volume if each day is trained once</h3>${volumeRows(volumeFromExercises(entries))}</section>`;
+    <p class="muted small">Rep boxes are optional. Leave them blank to use each exercise's usual range.</p>
+    <details class="card slim"><summary><h3>Weekly volume</h3><span class="muted small">each day trained once</span></summary>${volumeRows(volumeFromExercises(entries))}</details>`;
 }
 
 const prog = () => getProgram(getState(), ui.planEdit);
 const dayOf = id => prog().days.find(d => d.id === id);
 
-actions['plan-edit'] = el => commit(() => { ui.planEdit = el.dataset.prog; });
+actions['plan-edit'] = el => commit(() => { ui.planEdit = el.dataset.prog; ui.planDay = null; });
+actions['plan-day'] = el => commit(() => { ui.planDay = el.dataset.day; });
 actions['plan-back'] = () => commit(() => { ui.planEdit = null; });
 actions['plan-activate'] = el => commit(s => { s.activeProgramId = el.dataset.prog; });
 actions['plan-delete'] = el => {
@@ -82,8 +95,7 @@ actions['plan-delete'] = el => {
 };
 actions['plan-new'] = () => openSheet(`
   <div class="sheet-head"><h2>New program</h2><button class="icon-btn" data-act="close-sheet" aria-label="Close">✕</button></div>
-  <div class="stack">${TEMPLATES.map(t => `<button class="tpl" data-act="plan-from-template" data-tpl="${t.id}"><strong>${esc(t.name)}</strong><span>${esc(t.blurb)}</span></button>`).join('')}
-  <button class="tpl" data-act="plan-blank"><strong>Blank program</strong><span>Start empty and add your own days and exercises.</span></button></div>`);
+  ${templateList('plan-from-template', `<button class="trow" data-act="plan-blank"><span><strong>Blank program</strong><small>Add your own days and exercises</small></span><i aria-hidden="true">›</i></button>`)}`);
 actions['plan-from-template'] = el => {
   closeSheet();
   commit(s => {
@@ -104,10 +116,15 @@ actions['plan-blank'] = () => {
 };
 actions['open-library'] = () => openExercisePicker({ title: 'Exercise library' });
 
-actions['plan-add-day'] = () => commit(() => { const p = prog(); p.days.push({ id: uid(), name: `Day ${p.days.length + 1}`, exercises: [] }); });
+actions['plan-add-day'] = () => commit(() => {
+  const p = prog();
+  const d = { id: uid(), name: `Day ${p.days.length + 1}`, exercises: [] };
+  p.days.push(d);
+  ui.planDay = d.id;
+});
 actions['plan-del-day'] = el => {
   if (prog().days.length === 1) return;
-  if (confirm('Delete this day?')) commit(() => { const p = prog(); p.days = p.days.filter(d => d.id !== el.dataset.day); });
+  if (confirm('Delete this day?')) commit(() => { const p = prog(); p.days = p.days.filter(d => d.id !== el.dataset.day); ui.planDay = null; });
 };
 const swap = (list, i, dir) => { const j = i + dir; if (j >= 0 && j < list.length) [list[i], list[j]] = [list[j], list[i]]; };
 actions['plan-move-day'] = el => commit(() => { const p = prog(); swap(p.days, p.days.findIndex(d => d.id === el.dataset.day), Number(el.dataset.dir)); });

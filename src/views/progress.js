@@ -106,7 +106,7 @@ function heatCard(s, today) {
 function bodyWeightCard(s) {
   const pts = s.bodyLog.map(b => ({ x: b.date, y: b.w }));
   return `<section class="card"><h3>Body weight</h3>
-    <div class="row gap"><input id="bwInput" inputmode="decimal" placeholder="${esc(s.settings.bodyWeight)} ${s.settings.unit}" aria-label="Body weight"><button class="btn" data-act="log-bw">Log today</button></div>
+    <div class="row gap"><input id="bwInput" inputmode="decimal" value="${esc(s.settings.bodyWeight)}" aria-label="Body weight"><button class="btn" data-act="log-bw">Log today</button></div>
     ${pts.length >= 2 ? lineChart(pts, { height: 130, unit: s.settings.unit }) : '<p class="muted small">Log a few weigh-ins to see the trend. Bodyweight lifts use your latest value to estimate strength.</p>'}</section>`;
 }
 

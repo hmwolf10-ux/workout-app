@@ -3,20 +3,16 @@ import { actions, ui } from '../ui.js';
 import { getState, commit, activeProgram, programFromTemplate } from '../store.js';
 import { getExercise } from '../catalog.js';
 import { TEMPLATES } from '../defaults.js';
+import { templateList } from './plan.js';
 import { nextDayIndex, stalledExercises } from '../engine.js';
 import { buildEntry, currentPlan, startWorkout, startQuick, setReadiness } from '../session.js';
 
 const rxText = (rx, unit) => (rx.w == null ? `find ${rx.lo}–${rx.hi} rep load` : `${rx.w > 0 ? fmtNum(rx.w) + ' ' + unit + ' × ' : ''}${rx.r}`);
 
 function onboarding() {
-  return `<section class="card">
-    <h2>Pick a starting program</h2>
-    <p class="muted">You can change every exercise, set and rep range later, or build your own from scratch.</p>
-    <div class="stack">${TEMPLATES.map(t => `
-      <button class="tpl" data-act="pick-template" data-tpl="${t.id}"><strong>${esc(t.name)}</strong><span>${esc(t.blurb)}</span></button>`).join('')}
-    </div>
-    <div class="row gap"><button class="btn" data-act="blank-program">Build my own</button><button class="btn" data-act="start-quick">Just start a workout</button></div>
-  </section>`;
+  return `<div class="glabel">Choose a program</div>
+    ${templateList('pick-template')}
+    <div class="row gap split"><button class="btn" data-act="blank-program">Build my own</button><button class="btn" data-act="start-quick">Quick workout</button></div>`;
 }
 
 function weekStrip(s, today) {
