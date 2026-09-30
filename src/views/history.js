@@ -6,7 +6,7 @@ import { startFromSession } from '../session.js';
 
 export function renderHistory(s) {
   const list = [...s.sessions].reverse();
-  let html = `<header class="page-head"><div><p class="eyebrow">${list.length} workout${list.length === 1 ? '' : 's'}</p><h1>History</h1></div></header>`;
+  let html = `<header class="page-head"><div><p class="eyebrow">${list.length} workout${list.length === 1 ? '' : 's'}</p></div></header>`;
   if (!list.length) return html + '<p class="muted pad">Completed workouts show up here. Tap one to edit or repeat it.</p>';
   let month = '';
   for (const x of list) {

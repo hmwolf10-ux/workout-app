@@ -24,7 +24,7 @@ export function renderToday(s) {
   const prog = activeProgram(s);
   const unit = s.settings.unit;
   const today = isoDate();
-  let html = `<header class="page-head"><div><p class="eyebrow">${esc(fmtDate(today, { weekday: 'long', month: 'long', day: 'numeric' }))}</p><h1>Today</h1></div></header>`;
+  let html = `<header class="page-head"><div><p class="eyebrow">${esc(fmtDate(today, { weekday: 'long', month: 'long', day: 'numeric' }))}</p></div></header>`;
 
   if (s.active) {
     const all = s.active.exercises.flatMap(e => e.sets.filter(x => !x.warmup));

@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f3f5f9" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0e131b" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f3f5f9">
   <meta name="color-scheme" content="light dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -12,11 +11,13 @@
   <meta name="apple-mobile-web-app-title" content="Workout">
   <title>Workout Tracker</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="icon-192.png?v=2" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+  <script>try{var t=localStorage.getItem("wk.theme");document.documentElement.dataset.theme=t==="dark"?"dark":"light";if(t==="dark")document.querySelector("meta[name=theme-color]").content="#0e131b"}catch(e){}</script>
   <link rel="stylesheet" href="src/styles.css">
 </head>
 <body>
+  <header id="bar"><div class="in" id="barin"></div></header>
   <main id="view" tabindex="-1"></main>
   <button id="resumeBar" data-act="resume" hidden></button>
   <div id="rest" hidden role="timer" aria-label="Rest timer">

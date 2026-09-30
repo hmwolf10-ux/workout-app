@@ -25,6 +25,7 @@ function render() {
   if (ui.tab === 'workout' && !s.active) ui.tab = 'today';
   document.body.dataset.tab = ui.tab;
   $('#view').innerHTML = VIEWS[ui.tab](s);
+  $('#barin').innerHTML = `<h1>${TABS.find(t => t[0] === ui.tab)?.[1] ?? 'Workout'}</h1>`;
   $('#nav').innerHTML = TABS.map(([id, label, d]) => `<button data-act="nav" data-tab="${id}" ${ui.tab === id ? 'aria-current="page"' : ''}>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg><span>${label}</span></button>`).join('');
   const bar = $('#resumeBar');

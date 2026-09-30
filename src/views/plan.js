@@ -23,7 +23,7 @@ function renderList(s) {
         <button class="btn danger" data-act="plan-delete" data-prog="${p.id}">Delete</button>
       </div>
     </section>`).join('');
-  return `<header class="page-head"><div><p class="eyebrow">Programs &amp; exercises</p><h1>Plan</h1></div></header>
+  return `<header class="page-head"><div><p class="eyebrow">Programs &amp; exercises</p></div></header>
     ${cards || '<p class="muted">No programs yet.</p>'}
     <button class="btn block" data-act="plan-new">＋ New program</button>
     <button class="btn block" data-act="open-library">Exercise library</button>

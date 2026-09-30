@@ -30,7 +30,7 @@ body {
 body.noscroll { overflow: hidden; }
 body[data-tab="workout"] { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 body[data-tab="workout"] #nav { display: none; }
-main { max-width: 760px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 12px) 14px 0; outline: none; }
+main { max-width: 760px; margin: 0 auto; padding: 12px 12px 0; outline: none; }
 h1 { font-size: 24px; font-weight: 700; margin: 0; }
 h2 { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
 h3 { font-size: 16px; font-weight: 600; margin: 0 0 6px; }
@@ -229,3 +229,16 @@ input::placeholder { color: var(--muted); opacity: 0.8; }
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+
+/* app bar, chips and nav indicator (matches the meal diary) */
+#bar { position: sticky; top: 0; z-index: 20; background: var(--card); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top); }
+#bar .in { max-width: 760px; margin: 0 auto; height: 56px; display: flex; align-items: center; padding: 0 16px; }
+#bar h1 { font-size: 19px; }
+body[data-tab="workout"] #bar { display: none; }
+main { padding-top: 12px; }
+.page-head { padding: 4px 4px 12px; }
+.page-head .eyebrow { margin: 0; }
+.chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; font-weight: 600; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+#nav button { position: relative; }
+#nav button[aria-current]::before { content: ""; position: absolute; top: -6px; left: 25%; right: 25%; height: 3px; background: var(--accent); border-radius: 0 0 3px 3px; }

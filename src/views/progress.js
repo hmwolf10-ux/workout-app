@@ -28,13 +28,13 @@ export function renderProgress(s) {
   const unit = s.settings.unit;
   const today = isoDate();
   if (!s.sessions.length) {
-    return `<header class="page-head"><div><p class="eyebrow">Trends &amp; records</p><h1>Progress</h1></div></header>
+    return `<header class="page-head"><div><p class="eyebrow">Trends &amp; records</p></div></header>
       <p class="muted pad">Finish a workout and your strength trends, volume and records will show up here.</p>${bodyWeightCard(s)}`;
   }
 
   const last30 = s.sessions.filter(x => x.date >= addDays(today, -30));
   const stats = last30.map(sessionStats);
-  let html = `<header class="page-head"><div><p class="eyebrow">Trends &amp; records</p><h1>Progress</h1></div></header>
+  let html = `<header class="page-head"><div><p class="eyebrow">Trends &amp; records</p></div></header>
     <div class="stats4">
       <div><strong>${last30.length}</strong><span>workouts / 30d</span></div>
       <div><strong>${sum(stats.map(x => x.sets))}</strong><span>sets / 30d</span></div>

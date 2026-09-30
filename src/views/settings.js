@@ -11,7 +11,11 @@ export function renderSettings(s) {
   const st = s.settings;
   const plan = planFor(st, isoDate());
   const peaking = st.goal === 'peaking';
-  return `<header class="page-head"><div><p class="eyebrow">Training model &amp; data</p><h1>Settings</h1></div></header>
+  return `<header class="page-head"><div><p class="eyebrow">Training model &amp; data</p></div></header>
+    <section class="card"><h3>Appearance</h3>
+      <p class="muted small">Choose how the app looks on this device.</p>
+      <div class="chips">${[['light', 'Light'], ['dark', 'Dark']].map(([v, l]) => `<button class="chip" data-act="theme" data-v="${v}" aria-pressed="${currentTheme() === v}">${l}</button>`).join('')}</div>
+    </section>
     <section class="card"><h3>Goal</h3>
       <label class="field">Training goal<select data-st="goal">${opt(GOALS, st.goal)}</select></label>
       <p class="muted small">${{
@@ -44,6 +48,15 @@ export function renderSettings(s) {
     </section>
     <p class="muted small center">Workout Tracker · v4 · works offline once loaded</p>`;
 }
+
+const currentTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+actions['theme'] = el => {
+  const v = el.dataset.v;
+  try { localStorage.setItem('wk.theme', v); } catch { /* storage blocked */ }
+  document.documentElement.dataset.theme = v;
+  document.querySelector('meta[name=theme-color]').content = v === 'dark' ? '#0e131b' : '#f3f5f9';
+  document.querySelectorAll('[data-act=theme]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+};
 
 const LB_PER_KG = 2.20462;
 function convertWeights(s, factor) {
