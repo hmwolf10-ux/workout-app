@@ -5,7 +5,30 @@ import { planFor, prescribe, repRange, setsFor, historyFor, warmups, prCheck, ne
 import { isoDate, uid, num } from './util.js';
 
 export const incFor = (s, ex) => ex.increment ?? s.settings.increments[ex.incClass] ?? 2.5;
-export const currentPlan = (s = getState()) => planFor(s.settings, isoDate());
+export function currentPlan(s = getState()) {
+  const plan = planFor(s.settings, isoDate());
+  if (s.readiness?.date === isoDate() && s.readiness.level === 'low' && !plan.isDeload) {
+    plan.rir = Math.min(4, plan.rir + 1);
+    plan.volMult = Math.min(plan.volMult, 0.75);
+    plan.ramp = 0;
+    plan.easy = true;
+    plan.label += ' · easy day';
+    plan.note = `Run-down day: about a quarter fewer sets. Aim to finish sets with about ${plan.rir} reps in reserve.`;
+  }
+  return plan;
+}
+
+export function setReadiness(level) {
+  commit(s => { s.readiness = level === 'low' ? { date: isoDate(), level } : null; });
+}
+
+export function toggleSuperset(exUid) {
+  commit(s => {
+    const list = s.active.exercises;
+    const i = list.findIndex(e => e.uid === exUid);
+    if (i >= 0 && i < list.length - 1) list[i].ss = !list[i].ss;
+  });
+}
 export const bodyWeightFor = (s, ex) => (ex.type === 'bodyweight' ? s.settings.bodyWeight : 0);
 
 export function buildEntry(s, ex, opts = {}, plan = currentPlan(s)) {
@@ -90,7 +113,8 @@ export function toggleSet(exUid, idx, vals) {
       set.pr = prCheck(historyFor(s.sessions, ex.exId), set, bw);
       ex.hint = nextSetHint(set, ex.rx, ex.inc);
     }
-    s.active.restEnd = Date.now() + (set.warmup ? 45 : ex.rest) * 1000;
+    // first half of a superset: go straight to the partner, rest after the pair
+    s.active.restEnd = ex.ss && !set.warmup ? null : Date.now() + (set.warmup ? 45 : ex.rest) * 1000;
     result = { ok: true, pr: set.pr, hint: ex.hint?.msg };
   });
   return result;

@@ -4,7 +4,7 @@ import { getState, commit, activeProgram, programFromTemplate } from '../store.j
 import { getExercise } from '../catalog.js';
 import { TEMPLATES } from '../defaults.js';
 import { nextDayIndex, stalledExercises } from '../engine.js';
-import { buildEntry, currentPlan, startWorkout, startQuick } from '../session.js';
+import { buildEntry, currentPlan, startWorkout, startQuick, setReadiness } from '../session.js';
 
 const rxText = (rx, unit) => (rx.w == null ? `find ${rx.lo}–${rx.hi} rep load` : `${rx.w > 0 ? fmtNum(rx.w) + ' ' + unit + ' × ' : ''}${rx.r}`);
 
@@ -40,6 +40,12 @@ export function renderToday(s) {
   </section>`;
 
   if (!prog) return html + onboarding();
+
+  if (!plan.isDeload && !s.active) {
+    const low = plan.easy;
+    html += `<section class="card"><div class="row between"><div><h3>How do you feel today?</h3><p class="muted small">Run-down days get an extra rep in reserve and fewer sets.</p></div>
+      <div class="seg"><button class="${low ? '' : 'on'}" data-act="readiness" data-v="ok">Good</button><button class="${low ? 'on' : ''}" data-act="readiness" data-v="low">Run down</button></div></div></section>`;
+  }
 
   if (plan.goal !== 'peaking' && !plan.isDeload) {
     const stalled = stalledExercises(s.sessions, today, id => (s.exercises[id]?.type === 'bodyweight' ? s.settings.bodyWeight : 0));
@@ -102,3 +108,4 @@ actions['deload-now'] = () => commit(s => {
   st.deload = true;
   st.mesoStart = isoDate(d);
 });
+actions['readiness'] = el => setReadiness(el.dataset.v);

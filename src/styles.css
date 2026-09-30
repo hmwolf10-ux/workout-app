@@ -242,3 +242,49 @@ main { padding-top: 12px; }
 .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 #nav button { position: relative; }
 #nav button[aria-current]::before { content: ""; position: absolute; top: -6px; left: 25%; right: 25%; height: 3px; background: var(--accent); border-radius: 0 0 3px 3px; }
+
+/* ---------- phone polish ---------- */
+html { overscroll-behavior-y: none; }
+body { min-height: 100vh; min-height: 100dvh; }
+body[data-tab="workout"] #nav { display: flex; }
+body[data-tab="workout"] { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 96px); }
+body[data-tab="workout"] #rest { bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px); }
+body[data-tab="workout"] #toast { bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 84px); }
+/* fixed bars would ride up above the on-screen keyboard; hide them while typing */
+body.typing #nav, body.typing #rest, body.typing #resumeBar { display: none; }
+body.typing { padding-bottom: 24px; }
+.sheet { max-height: 88vh; max-height: 88dvh; overscroll-behavior: contain; }
+.sheet.tall { height: 88vh; height: 88dvh; }
+.wk-head { top: 0; }
+@media (max-width: 380px) {
+  main { padding-left: 8px; padding-right: 8px; }
+  .set, .hset { grid-template-columns: 26px 1fr 1fr 56px 44px; gap: 4px; }
+  .stats4 strong { font-size: 18px; }
+}
+
+/* exercise name as a button */
+.name-btn { background: none; border: 0; padding: 0; text-align: left; font: inherit; font-size: 16px; font-weight: 600; color: var(--fg); min-height: 28px; }
+.name-btn:hover { color: var(--accent); }
+
+/* supersets */
+.card.ex.ss { border-left: 3px solid var(--accent); border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; margin-bottom: 2px; }
+.card.ex.ss-tail { border-left: 3px solid var(--accent); border-top-left-radius: 4px; border-top-right-radius: 4px; }
+.note-row { margin-top: 8px; }
+.btn.small.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+/* consistency heat map */
+.heat { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: repeat(7, auto); grid-auto-flow: column; gap: 3px; margin: 8px 0 4px; }
+.heat i { aspect-ratio: 1; border-radius: 3px; background: var(--track); }
+.heat i.l1 { background: color-mix(in srgb, var(--accent) 35%, var(--track)); }
+.heat i.l2 { background: color-mix(in srgb, var(--accent) 65%, var(--track)); }
+.heat i.l3 { background: var(--accent); }
+.heat i.today { outline: 1.5px solid var(--fg); outline-offset: 1px; }
+
+/* exercise detail */
+.hrow { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.hrow:last-child { border-bottom: 0; }
+.rowbtn { display: flex; width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 10px 0; justify-content: space-between; gap: 12px; text-align: left; min-height: 44px; }
+.rowbtn:last-child { border-bottom: 0; }
+details.learn summary { cursor: pointer; font-weight: 600; min-height: 36px; display: flex; align-items: center; }
+details.learn ul { margin: 4px 0 8px; padding-left: 20px; }
+details.learn li { margin-bottom: 6px; }

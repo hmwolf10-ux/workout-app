@@ -94,6 +94,12 @@ export const BUILTIN_EXERCISES = [
   b('calf-raise', 'Calf Raises', 'calves', [], 'machine', 'isolation', 10, 15, 60),
   b('leg-raise', 'Hanging Leg Raises', 'abdominals', [], 'body only', 'isolation', 8, 15, 60),
   b('cable-crunch', 'Cable Crunch', 'abdominals', [], 'cable', 'isolation', 10, 15, 60),
+  b('incline-curl', 'Incline Dumbbell Curl', 'biceps', ['forearms'], 'dumbbell', 'isolation', 8, 12, 75),
+  b('cable-lateral', 'Cable Lateral Raise', 'shoulders', [], 'cable', 'isolation', 12, 20, 60),
+  b('cable-oh-tri', 'Overhead Cable Triceps Extension', 'triceps', [], 'cable', 'isolation', 10, 15, 75),
+  b('hack-squat', 'Hack Squat', 'quadriceps', ['glutes'], 'machine', 'compound', 8, 12, 120),
+  b('seated-calf', 'Seated Calf Raise', 'calves', [], 'machine', 'isolation', 10, 15, 60),
+  b('machine-press', 'Machine Chest Press', 'chest', ['triceps', 'shoulders'], 'machine', 'compound', 8, 12, 105),
 ];
 
 // exercise ids for templates
@@ -114,6 +120,26 @@ export const TEMPLATES = [
       { name: 'Push', exercises: [t('bench-press', 3), t('db-shoulder-press', 3), t('incline-db', 3), t('lateral-raise', 3), t('pushdown', 3)] },
       { name: 'Pull', exercises: [t('lat-pulldown', 3), t('bent-row', 3), t('seated-row', 2), t('face-pull', 3), t('db-curl', 3)] },
       { name: 'Legs', exercises: [t('back-squat', 3), t('rdl', 3), t('leg-press', 3), t('leg-curl', 3), t('calf-raise', 4)] },
+    ],
+  },
+  {
+    id: 'ul-lengthened', name: 'Upper / Lower · Stretch focus', blurb: '4 days. Favors movements that load the muscle when it is long, which the research links to extra growth.',
+    days: [
+      { name: 'Upper A', exercises: [t('incline-db', 3), t('lat-pulldown', 3), t('cable-lateral', 3), t('cable-oh-tri', 3), t('incline-curl', 3)] },
+      { name: 'Lower A', exercises: [t('hack-squat', 3), t('rdl', 3), t('leg-curl', 3), t('seated-calf', 3), t('cable-crunch', 2)] },
+      { name: 'Upper B', exercises: [t('bench-press', 3), t('pull-ups', 3), t('cable-fly', 2), t('rear-delt', 2), t('hammer-curl', 2), t('skullcrusher', 2)] },
+      { name: 'Lower B', exercises: [t('back-squat', 3), t('hip-thrust', 3), t('leg-ext', 3), t('leg-curl', 2), t('calf-raise', 3)] },
+    ],
+  },
+  {
+    id: 'ppl6', name: 'Push / Pull / Legs × 2', blurb: '6 days. Each muscle twice a week with two different angles. High volume for experienced lifters.',
+    days: [
+      { name: 'Push A', exercises: [t('bench-press', 3), t('db-shoulder-press', 3), t('cable-fly', 2), t('cable-lateral', 3), t('pushdown', 3)] },
+      { name: 'Pull A', exercises: [t('pull-ups', 3), t('seated-row', 3), t('rear-delt', 2), t('db-curl', 3), t('shrug', 2)] },
+      { name: 'Legs A', exercises: [t('back-squat', 3), t('rdl', 3), t('leg-ext', 2), t('leg-curl', 3), t('calf-raise', 3)] },
+      { name: 'Push B', exercises: [t('incline-db', 3), t('machine-press', 2), t('lateral-raise', 3), t('cable-oh-tri', 3)] },
+      { name: 'Pull B', exercises: [t('bent-row', 3), t('lat-pulldown', 3), t('face-pull', 3), t('incline-curl', 3)] },
+      { name: 'Legs B', exercises: [t('hack-squat', 3), t('hip-thrust', 3), t('leg-curl', 2), t('seated-calf', 3), t('leg-raise', 3)] },
     ],
   },
   {

@@ -15,6 +15,9 @@ A phone-first training app: build your own programs from 800+ exercises, log set
   - *Peaking*: pick an event date and it runs accumulation → intensification → realization → taper.
 - **Volume tracking.** Weekly hard sets per muscle group against MEV / MAV / MRV landmarks, in the plan editor and on the Progress tab.
 - **Progress.** Strength trends, records, sets and tonnage per week, streaks, body-weight log, and a heads-up when several lifts stop progressing.
+- **Supersets, plates and stretch-focused templates.** Link two exercises into a superset (rest happens after the pair), see the plates per side for barbell loads, and start from Upper/Lower stretch-focus or 6-day PPL templates.
+- **Readiness and layoffs.** Mark a run-down day for an extra rep in reserve and fewer sets; long breaks discount your old strength estimate instead of asking you to beat it.
+- **Per-exercise history.** Tap any exercise name for its e1RM chart, best reps at each load and recent sessions. A 12-week consistency map sits on Progress.
 - **History you can fix.** Open any workout to edit or delete sets, or repeat it.
 - **Private and offline.** Data lives in your browser's `localStorage`; export/import a JSON backup from Settings. Installable as a PWA.
 
@@ -56,7 +59,7 @@ These are well-supported defaults, not medical or coaching advice. Landmarks var
 - `src/store.js`: state, persistence, backup, migration from the old app version
 - `src/catalog.js`, `src/pickers.js`: exercise catalog, search, custom exercises
 - `src/defaults.js`: built-in exercises, templates, volume landmarks
-- `src/views/`: Today, Workout, Plan, Progress, History, Settings
+- `src/views/`: Today, Workout, Plan, Progress, History, Settings, Exercise detail
 - `public/data/exercises.json`: exercise catalog
 - `tests/`: engine tests
 

@@ -10,6 +10,7 @@ import { renderPlan } from './views/plan.js';
 import { renderProgress } from './views/progress.js';
 import { renderHistory } from './views/history.js';
 import { renderSettings } from './views/settings.js';
+import './views/exercise.js';
 
 const TABS = [
   ['today', 'Today', 'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
@@ -20,11 +21,21 @@ const TABS = [
 ];
 const VIEWS = { today: renderToday, workout: renderWorkout, plan: renderPlan, progress: renderProgress, history: renderHistory, settings: renderSettings };
 
+let lastTab = null;
+const savedScroll = {};
+
 function render() {
   const s = getState();
   if (ui.tab === 'workout' && !s.active) ui.tab = 'today';
+  const switched = lastTab !== null && ui.tab !== lastTab;
+  if (switched) {
+    if (lastTab === 'workout') savedScroll.workout = window.scrollY;
+    document.activeElement?.blur?.();
+  }
+  lastTab = ui.tab;
   document.body.dataset.tab = ui.tab;
   $('#view').innerHTML = VIEWS[ui.tab](s);
+  if (switched) window.scrollTo(0, ui.tab === 'workout' ? savedScroll.workout || 0 : 0);
   $('#barin').innerHTML = `<h1>${TABS.find(t => t[0] === ui.tab)?.[1] ?? 'Workout'}</h1>`;
   $('#nav').innerHTML = TABS.map(([id, label, d]) => `<button data-act="nav" data-tab="${id}" ${ui.tab === id ? 'aria-current="page"' : ''}>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg><span>${label}</span></button>`).join('');
@@ -83,7 +94,6 @@ actions['nav'] = el => {
   ui.tab = el.dataset.tab;
   if (ui.tab !== 'plan') ui.planEdit = null;
   render();
-  window.scrollTo(0, 0);
 };
 actions['rest-add'] = () => { extendRest(30); tick(); };
 actions['rest-skip'] = () => { skipRest(); tick(); };
@@ -111,3 +121,16 @@ setInterval(tick, 500);
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+// hide the fixed bars while a field is focused so the on-screen keyboard can't push them over the form
+const typingField = t => t?.matches?.('input:not([type=checkbox]):not([type=file]), textarea, select');
+let typingTimer = null;
+document.addEventListener('focusin', e => {
+  if (!typingField(e.target)) return;
+  clearTimeout(typingTimer);
+  document.body.classList.add('typing');
+});
+document.addEventListener('focusout', () => {
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => { if (!typingField(document.activeElement)) document.body.classList.remove('typing'); }, 150);
+});

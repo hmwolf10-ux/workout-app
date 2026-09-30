@@ -40,6 +40,16 @@ export function renderSettings(s) {
       ${check('showWarmups', st.showWarmups, 'Suggest warm-up sets', 'For compound lifts at working weights.')}
       ${check('restAlert', st.restAlert, 'Sound and vibrate when rest ends')}
     </section>
+    <section class="card"><details class="learn"><summary>Training basics this app is built on</summary>
+      <ul class="muted small">
+        <li><strong>Volume:</strong> roughly 10–20 hard sets per muscle per week works for most people. More than that shows diminishing returns.</li>
+        <li><strong>Effort:</strong> finishing sets with 0–3 reps in reserve builds muscle about as well as going to failure, with less fatigue.</li>
+        <li><strong>Frequency:</strong> hit each muscle about twice a week; it mainly helps you spread volume.</li>
+        <li><strong>Rest:</strong> 2–3 minutes between heavy compound sets, about a minute for small isolation work.</li>
+        <li><strong>Progression:</strong> add reps, then load. Small steady jumps beat big rare ones.</li>
+        <li><strong>Stretch:</strong> exercises that load a muscle at long length (incline curls, overhead extensions, Romanian deadlifts) look especially good for growth.</li>
+        <li><strong>Outside the gym:</strong> protein around 1.6–2.2 g per kg of body weight, 7–9 hours of sleep, and a deload when progress stalls.</li>
+      </ul><p class="muted small">General guidance from the exercise-science literature, not medical advice.</p></details></section>
     <section class="card"><h3>Your data</h3>
       <p class="muted small">Everything is stored on this device only. Export a backup now and then — browsers can clear site data.</p>
       <div class="row gap"><button class="btn primary" data-act="export">Export backup</button><button class="btn" data-act="import">Import backup</button></div>

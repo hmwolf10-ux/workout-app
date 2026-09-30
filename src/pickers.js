@@ -19,7 +19,7 @@ export function openExercisePicker({ title = 'Exercises', onPick = null } = {}) 
     <div id="pickResults" class="results"></div>
     <button class="btn block" data-act="new-custom">＋ Create custom exercise</button>`, 'tall');
   renderResults();
-  $('#pickQ')?.focus();
+  if (matchMedia('(pointer: fine)').matches) $('#pickQ')?.focus();
 }
 
 function renderResults() {

@@ -29,7 +29,7 @@ function setRow(ex, set, i, sug, unit, n) {
   </div>`;
 }
 
-function exerciseCard(s, ex, ei, total) {
+function exerciseCard(s, ex, ei, total, tail) {
   const unit = s.settings.unit;
   const sug = S.suggested(ex);
   let n = 0;
@@ -41,9 +41,9 @@ function exerciseCard(s, ex, ei, total) {
   const pl = ex.equipment === 'barbell' && rx.w > 0 ? platesPerSide(rx.w, unit) : null;
   const plates = pl?.length ? `<p class="muted small">Per side: ${pl.join(' + ')}</p>` : '';
   const anyDone = ex.sets.some(x => x.done);
-  return `<section class="card ex" data-ex="${ex.uid}">
+  return `<section class="card ex${ex.ss ? " ss" : ""}${tail ? " ss-tail" : ""}" data-ex="${ex.uid}">
     <div class="row between top">
-      <div><h3>${esc(ex.name)}</h3><p class="muted small">${esc(cap(ex.primary) || 'Custom')}</p></div>
+      <div><h3><button class="name-btn" data-act="ex-detail" data-id="${esc(ex.exId)}">${esc(ex.name)}</button></h3><p class="muted small">${esc(cap(ex.primary) || 'Custom')}</p></div>
       <div class="row tools">
         <button class="icon-btn" data-act="move-ex" data-dir="-1" data-ex="${ex.uid}" ${ei === 0 ? 'disabled' : ''} aria-label="Move up">↑</button>
         <button class="icon-btn" data-act="move-ex" data-dir="1" data-ex="${ex.uid}" ${ei === total - 1 ? 'disabled' : ''} aria-label="Move down">↓</button>
@@ -60,7 +60,9 @@ function exerciseCard(s, ex, ei, total) {
     <div class="row gap">
       <button class="btn small" data-act="add-set" data-ex="${ex.uid}">＋ Set</button>
       <button class="btn small" data-act="remove-set" data-ex="${ex.uid}" ${ex.sets.length <= 1 ? 'disabled' : ''}>− Set</button>
-      <input class="note" data-note="${ex.uid}" placeholder="Note" maxlength="200" value="${esc(ex.note || '')}">
+      ${ei < total - 1 ? `<button class="btn small ${ex.ss ? "on" : ""}" data-act="superset" data-ex="${ex.uid}" aria-pressed="${!!ex.ss}">Superset</button>` : ""}
+    </div>
+    <div class="row note-row"><input class="note" data-note="${ex.uid}" placeholder="Note" maxlength="200" value="${esc(ex.note || "")}">
     </div>
   </section>`;
 }
@@ -68,7 +70,7 @@ function exerciseCard(s, ex, ei, total) {
 export function renderWorkout(s) {
   const a = s.active;
   if (!a) return '<p class="muted pad">No workout in progress.</p>';
-  const cards = a.exercises.map((ex, i) => exerciseCard(s, ex, i, a.exercises.length)).join('');
+  const cards = a.exercises.map((ex, i) => exerciseCard(s, ex, i, a.exercises.length, i > 0 && a.exercises[i - 1].ss)).join('');
   return `<header class="wk-head">
       <button class="icon-btn" data-act="minimize" aria-label="Minimize workout">‹</button>
       <div class="grow"><strong>${esc(a.name)}</strong><span class="muted small">${esc(a.planLabel || '')}</span></div>
@@ -138,3 +140,4 @@ actions['confirm-finish'] = () => {
     ${prs.length ? `<h3>Records</h3><ul class="plain">${prs.map(p => `<li>🏆 ${esc(p)}</li>`).join('')}</ul>` : ''}
     <button class="btn primary block" data-act="close-sheet">Done</button>`);
 };
+actions['superset'] = el => S.toggleSuperset(el.dataset.ex);

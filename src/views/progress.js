@@ -42,6 +42,8 @@ export function renderProgress(s) {
       <div><strong>${streakWeeks(s)}</strong><span>week streak</span></div>
     </div>`;
 
+  html += heatCard(s, today);
+
   const ws = addDays(startOfWeek(today), -7 * ui.volWeek);
   html += `<section class="card"><div class="row between"><h3>Weekly volume</h3>
       <div class="seg"><button class="${ui.volWeek === 0 ? 'on' : ''}" data-act="vol-week" data-w="0">This week</button><button class="${ui.volWeek === 1 ? 'on' : ''}" data-act="vol-week" data-w="1">Last week</button></div></div>
@@ -78,10 +80,27 @@ export function renderProgress(s) {
     const hist = historyFor(s.sessions, x.id);
     const bw = bwFor(s, x.id);
     const best = hist.map(h => topSet(h.sets, bw)).reduce((m, t) => (t.e > m.e ? t : m));
-    return `<li><span>${esc(x.name)}</span><span class="muted">${best.set.w ? fmtNum(best.set.w) + ' × ' : ''}${best.set.r} · e1RM ${Math.round(best.e - bw)}</span></li>`;
+    return `<button class="rowbtn" data-act="ex-detail" data-id="${esc(x.id)}"><span>${esc(x.name)}</span><span class="muted">${best.set.w ? fmtNum(best.set.w) + ' × ' : ''}${best.set.r} · e1RM ${Math.round(best.e - bw)}</span></button>`;
   }).join('');
-  html += `<section class="card"><h3>Records</h3><ul class="plain">${recent}</ul></section>`;
+  html += `<section class="card"><h3>Records</h3><p class="muted small">Tap an exercise for its full history.</p>${recent}</section>`;
   return html + bodyWeightCard(s);
+}
+
+function heatCard(s, today) {
+  const start = addDays(startOfWeek(today), -7 * 11);
+  const sets = new Map();
+  for (const x of s.sessions) if (x.date >= start) sets.set(x.date, (sets.get(x.date) || 0) + sessionStats(x).sets);
+  let cells = '';
+  for (let i = 0; i < 84; i++) {
+    const d = addDays(start, i);
+    if (d > today) { cells += '<i style="visibility:hidden"></i>'; continue; }
+    const n = sets.get(d) || 0;
+    cells += `<i class="${n ? 'l' + (n >= 20 ? 3 : n >= 12 ? 2 : 1) : ''} ${d === today ? 'today' : ''}" title="${esc(fmtDate(d))}: ${n} sets"></i>`;
+  }
+  const days = [...sets.keys()].length;
+  return `<section class="card"><div class="row between"><h3>Consistency</h3><span class="muted small">${days} training day${days === 1 ? '' : 's'} in 12 weeks</span></div>
+    <div class="heat" role="img" aria-label="Training days over the last 12 weeks">${cells}</div>
+    <p class="muted small">Columns are weeks, top row is Monday. Darker means more sets.</p></section>`;
 }
 
 function bodyWeightCard(s) {
