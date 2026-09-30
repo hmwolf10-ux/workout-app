@@ -41,6 +41,13 @@ export function planFor(settings, dateISO) {
     plan.note = 'Your event date has passed. Set a new one in Settings, or switch goal.';
   }
 
+  if (settings.useBlocks === false) {
+    return Object.assign(plan, {
+      phase: "Training", label: "", rir: 2, mainRange: settings.goal === "strength" ? [3, 6] : null,
+      restBonus: settings.goal === "hypertrophy" ? 0 : 30, note: "Finish sets with about 2 reps in reserve.",
+    });
+  }
+
   const L = Math.max(2, Math.floor(settings.mesoLength) || 4);
   const cycle = L + (settings.deload ? 1 : 0);
   const start = settings.mesoStart || startOfWeek(dateISO);

@@ -9,7 +9,7 @@ A phone-first training app: build your own programs from 800+ exercises, log set
 - **Build any workout.** Start from a template (Upper/Lower, Push/Pull/Legs, Full Body, Strength) or a blank program. Add, reorder and remove days and exercises, set sets and rep ranges, or create custom exercises. Need a one-off? Start a Quick workout and add exercises as you go.
 - **Log fast.** Every set is pre-filled with today's target, so a normal set is one tap. Warm-up ramps, a rest timer with sound and vibration, notes, swap/reorder mid-workout, and PR alerts.
 - **Targets that adapt.** Each set is converted to an RIR-adjusted estimated 1RM. The next session's load is the heaviest step that still hits the target reps at the target effort, using double progression (fill the rep range, then add load). After each set it can nudge the next one up or down.
-- **Periodization built in.** Choose a goal:
+- **Periodization built in.** Choose a goal (weekly training blocks with deloads are optional and off by default):
   - *Muscle gain*: effort ramps 3 → 1 RIR over a 2–8 week block, sets ramp up, then a half-volume deload.
   - *Strength*: main barbell lifts move to 3–6 reps with longer rests.
   - *Peaking*: pick an event date and it runs accumulation → intensification → realization → taper.

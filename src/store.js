@@ -23,7 +23,7 @@ export function freshState() {
     v: 4,
     settings: {
       unit: 'lb', bodyWeight: 180, goal: 'hypertrophy', experience: 'intermediate',
-      mesoLength: 4, deload: true, rampVolume: true, peakDate: null, mesoStart: null,
+      useBlocks: false, mesoLength: 4, deload: true, rampVolume: true, peakDate: null, mesoStart: null,
       increments: { ...DEFAULT_INCREMENTS.lb }, showWarmups: true, restAlert: true,
     },
     exercises: {}, programs: [], activeProgramId: null, sessions: [], active: null, bodyLog: [],

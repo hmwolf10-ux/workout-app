@@ -13,7 +13,7 @@ export function renderSettings(s) {
   const plan = planFor(st, isoDate());
   const peaking = st.goal === 'peaking';
   const goalHelp = {
-    hypertrophy: 'Rep ranges per exercise, effort ramps 3 → 1 RIR across the block, sets build up, then a deload.',
+    hypertrophy: 'Uses each exercise’s rep range at about 2 reps in reserve. Turn on weekly blocks to ramp effort and add deloads.',
     strength: 'Main barbell lifts move to 3–6 reps with longer rests. Accessories keep hypertrophy ranges.',
     peaking: 'Counts down to your event: accumulation, intensification, realization, then a taper.',
   }[st.goal];
@@ -21,11 +21,12 @@ export function renderSettings(s) {
     <div class="group">
       ${row('Goal', `<select data-st="goal" aria-label="Training goal">${opt(GOALS, st.goal)}</select>`)}
       ${peaking ? row('Event date', `<input type="date" data-st="peakDate" value="${esc(st.peakDate || '')}" aria-label="Event date">`) : ''}
-      <p class="gnote">${esc(goalHelp)} Right now: <strong>${esc(plan.label)}</strong>, target ${plan.rir} RIR.</p>
-      ${peaking ? '' : `${row('Weeks before deload', `<input type="number" inputmode="numeric" min="2" max="8" data-st="mesoLength" value="${st.mesoLength}" aria-label="Build weeks before deload">`)}
-      ${toggle('deload', st.deload, 'Deload week', 'Half the sets at easy effort after each block.')}
+      <p class="gnote">${esc(goalHelp)}${plan.label ? ` Right now: <strong>${esc(plan.label)}</strong>, target ${plan.rir} RIR.` : ` Target: about ${plan.rir} reps in reserve.`}</p>
+      ${peaking ? '' : `${toggle('useBlocks', st.useBlocks, 'Weekly training blocks', 'Ramps effort across weeks and adds a deload. Off keeps every week the same.')}
+      ${st.useBlocks ? row('Weeks before deload', `<input type="number" inputmode="numeric" min="2" max="8" data-st="mesoLength" value="${st.mesoLength}" aria-label="Build weeks before deload">`) : ''}
+      ${st.useBlocks ? `${toggle('deload', st.deload, 'Deload week', 'Half the sets at easy effort after each block.')}
       ${st.goal === 'hypertrophy' ? toggle('rampVolume', st.rampVolume, 'Add sets through the block', 'Up to +2 sets per exercise.') : ''}
-      <button class="srow" data-act="restart-block"><span>Restart block this week</span></button>`}
+      <button class="srow" data-act="restart-block"><span>Restart block this week</span></button>` : ''}`}
     </div>
 
     <div class="glabel">Workout</div>

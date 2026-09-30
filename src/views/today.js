@@ -45,7 +45,7 @@ export function renderToday(s) {
       <button class="btn primary block" data-act="resume">Resume workout</button></section>`;
   }
 
-  html += `<section class="card phase ${plan.isDeload ? 'deload' : ''}">
+  if (plan.label || plan.note && plan.phase !== 'Training') html += `<section class="card phase ${plan.isDeload ? 'deload' : ''}">
     <div class="row between"><span class="pill">${esc(plan.phase)}</span><strong>${esc(plan.label)}</strong></div>
     <p class="muted">${esc(plan.note)}</p>
     <div class="chips"><span class="chip">${plan.rir} RIR</span>${plan.isDeload ? "<span class=\"chip\">Half volume</span>" : plan.ramp ? `<span class="chip">+${plan.ramp} set${plan.ramp > 1 ? "s" : ""} per exercise</span>` : ""}</div>
@@ -118,6 +118,7 @@ actions['deload-now'] = () => commit(s => {
   const d = new Date(startOfWeek(isoDate()) + 'T00:00:00');
   d.setDate(d.getDate() - L * 7);
   st.deload = true;
+  st.useBlocks = true;
   st.mesoStart = isoDate(d);
 });
 actions['readiness'] = el => setReadiness(el.dataset.v);

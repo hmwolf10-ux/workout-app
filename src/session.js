@@ -12,7 +12,7 @@ export function currentPlan(s = getState()) {
     plan.volMult = Math.min(plan.volMult, 0.75);
     plan.ramp = 0;
     plan.easy = true;
-    plan.label += ' · easy day';
+    plan.label = plan.label ? plan.label + ' · easy day' : 'Easy day';
     plan.note = `Run-down day: about a quarter fewer sets. Aim to finish sets with about ${plan.rir} reps in reserve.`;
   }
   return plan;
