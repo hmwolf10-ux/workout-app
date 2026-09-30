@@ -1,5 +1,5 @@
 // Network-first with cache fallback: always fresh when online, works offline after one visit.
-const CACHE = 'workout-app-v7';
+const CACHE = 'workout-app-v9';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => {

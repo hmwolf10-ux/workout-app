@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   e1rm, loadForReps, prescribe, warmups, prCheck, planFor, setsFor, repRange,
-  volumeFromExercises, nextDayIndex, historyFor, stalledExercises,
+  volumeFromExercises, nextDayIndex, historyFor, stalledExercises, layoffFactor, platesPerSide,
 } from '../src/engine.js';
 
 const bench = { id: 'bench', type: 'weighted', compound: true, equipment: 'barbell', primary: 'chest', repMin: 6, repMax: 8 };
@@ -116,4 +116,26 @@ test('a flat e1RM over three sessions is flagged as stalled', () => {
   assert.deepEqual(stalled, ['Bench']);
   const improving = stalledExercises([mk('2026-09-08', 6), mk('2026-09-15', 7), mk('2026-09-22', 8)], '2026-09-25');
   assert.deepEqual(improving, []);
+});
+
+test('layoff discount grows with time away and caps at 15%', () => {
+  assert.equal(layoffFactor('2026-09-01', '2026-09-10'), 1);
+  assert.ok(Math.abs(layoffFactor('2026-09-01', '2026-09-22') - 0.975) < 1e-9);
+  assert.ok(Math.abs(layoffFactor('2026-01-01', '2026-09-22') - 0.85) < 1e-9);
+});
+
+test('prescribe lowers the target after a long layoff', () => {
+  const h = hist([{ w: 200, r: 6, rir: 2, done: true }]);
+  const fresh = prescribe(bench, h, plan, { ...cfg, today: '2026-09-05' });
+  const away = prescribe(bench, h, plan, { ...cfg, today: '2026-10-20' });
+  assert.ok(away.w < fresh.w || away.r < fresh.r);
+  assert.match(away.reason, /layoff/);
+});
+
+test('platesPerSide builds loads from the bar', () => {
+  assert.deepEqual(platesPerSide(135, 'lb'), [45]);
+  assert.deepEqual(platesPerSide(185, 'lb'), [45, 25]);
+  assert.deepEqual(platesPerSide(45, 'lb'), []);
+  assert.equal(platesPerSide(136, 'lb'), null);
+  assert.deepEqual(platesPerSide(100, 'kg'), [25, 15]);
 });

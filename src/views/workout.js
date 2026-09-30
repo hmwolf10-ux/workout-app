@@ -1,7 +1,7 @@
 import { $, esc, fmtNum, fmtDur, fmtK, cap } from '../util.js';
 import { actions, ui, openSheet, closeSheet, toast } from '../ui.js';
 import { getState, commit } from '../store.js';
-import { historyFor } from '../engine.js';
+import { historyFor, platesPerSide } from '../engine.js';
 import * as S from '../session.js';
 import { openExercisePicker } from '../pickers.js';
 
@@ -38,6 +38,8 @@ function exerciseCard(s, ex, ei, total) {
     ? `Find a load for ${rx.lo}–${rx.hi} reps`
     : `${rx.w > 0 ? fmtNum(rx.w) + ' ' + unit + ' × ' : ''}${rx.r} reps · ${rx.rir} RIR`;
   const rows = ex.sets.map((set, i) => setRow(ex, set, i, sug, unit, set.warmup ? 0 : ++n)).join('');
+  const pl = ex.equipment === 'barbell' && rx.w > 0 ? platesPerSide(rx.w, unit) : null;
+  const plates = pl?.length ? `<p class="muted small">Per side: ${pl.join(' + ')}</p>` : '';
   const anyDone = ex.sets.some(x => x.done);
   return `<section class="card ex" data-ex="${ex.uid}">
     <div class="row between top">
@@ -50,6 +52,7 @@ function exerciseCard(s, ex, ei, total) {
       </div>
     </div>
     <div class="target"><strong>${esc(target)}</strong><span class="muted small">${esc(rx.reason)}</span></div>
+    ${plates}
     ${lastLine(s, ex)}
     ${ex.hint ? `<div class="hint">${esc(ex.hint.msg)}</div>` : ''}
     <div class="set head"><span>Set</span><span>${isHeavy(ex) ? unit : 'Added ' + unit}</span><span>Reps</span><span>RIR</span><span></span></div>
@@ -83,7 +86,7 @@ const readVals = row => ({ w: $('[data-f=w]', row)?.value, r: $('[data-f=r]', ro
 actions['toggle-set'] = el => {
   const row = rowOf(el);
   const res = S.toggleSet(row.dataset.ex, Number(row.dataset.i), readVals(row));
-  if (!res.ok) toast('Enter the reps first');
+  if (!res.ok) toast(res.msg || 'Enter the reps first');
   else if (res.pr) toast('🏆 ' + res.pr);
 };
 document.addEventListener('change', e => {

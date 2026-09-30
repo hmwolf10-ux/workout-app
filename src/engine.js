@@ -120,13 +120,14 @@ export function prescribe(ex, hist, plan, cfg) {
 
   const top = tops[tops.length - 1];
   const prev = tops.length > 1 ? tops[tops.length - 2] : null;
-  const est = prev && top.e < prev.e * 0.92 ? (top.e + prev.e) / 2 : top.e; // ignore a single bad day
+  const lay = layoffFactor(hist[hist.length - 1].date, cfg.today);
+  const est = (prev && top.e < prev.e * 0.92 ? (top.e + prev.e) / 2 : top.e) * lay; // ignore a single bad day
   const w0 = top.set.w || 0;
   const lastReps = top.set.r;
   const lastRir = top.set.rir ?? 1;
   const canDo = repsAtLoad(est, bw + w0) - rirT;
   let want = Math.round(canDo);
-  if (lastRir <= rirT) want = Math.max(want, lastReps + 1); // beat last time when effort matched
+  if (lastRir <= rirT && lay === 1) want = Math.max(want, lastReps + 1); // beat last time when effort matched
 
   let w = w0, r, reason;
   if (want > hi) {
@@ -145,7 +146,26 @@ export function prescribe(ex, hist, plan, cfg) {
     reason = r > lastReps ? `Same load; beat last time (${lastReps} → ${r} reps).` : `Repeat the load and aim for ${r} reps.`;
   }
   if (plan.isDeload && w > w0) { w = w0; r = Math.min(r, hi); reason = 'Deload: keep the load, lower the effort.'; }
+  if (lay < 1) reason = `${Math.round((1 - lay) * 100)}% layoff discount applied. ${reason}`;
   return { ...base, w, r, basis: 'e1rm', est, reason };
+}
+
+// Strength fades after a long break: discount the old estimate 2.5% per week past two weeks, up to 15%.
+export function layoffFactor(lastDate, today) {
+  if (!lastDate || !today) return 1;
+  const gap = daysBetween(lastDate, today);
+  return gap <= 14 ? 1 : 1 - Math.min(0.15, 0.025 * Math.ceil((gap - 14) / 7));
+}
+
+// Plates per side for a barbell load; null when the load can't be built exactly.
+export function platesPerSide(total, unit = 'lb') {
+  const bar = unit === 'kg' ? 20 : 45;
+  const plates = unit === 'kg' ? [25, 20, 15, 10, 5, 2.5, 1.25] : [45, 35, 25, 10, 5, 2.5];
+  let side = (total - bar) / 2;
+  if (!(side >= 0)) return null;
+  const out = [];
+  for (const p of plates) while (side >= p - 1e-9) { out.push(p); side -= p; }
+  return side < 1e-6 ? out : null;
 }
 
 const fmt = n => String(Math.round(n * 100) / 100);

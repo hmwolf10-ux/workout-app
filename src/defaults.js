@@ -103,7 +103,7 @@ export const TEMPLATES = [
     id: 'upper-lower', name: 'Upper / Lower', blurb: '4 days. Each muscle twice a week — a solid default for muscle gain.',
     days: [
       { name: 'Upper A', exercises: [t('bench-press', 3), t('bent-row', 3), t('pull-ups', 2), t('db-curl', 2)] },
-      { name: 'Lower A', exercises: [t('reverse-lunge', 3), t('hip-thrust', 3), t('leg-curl', 2), t('leg-raise', 2)] },
+      { name: 'Lower A', exercises: [t('back-squat', 3), t('rdl', 3), t('leg-ext', 2), t('leg-raise', 2)] },
       { name: 'Upper B', exercises: [t('incline-db', 3), t('chin-ups', 3), t('db-shoulder-press', 3), t('lateral-raise', 2)] },
       { name: 'Lower B', exercises: [t('bulgarian', 3), t('hip-thrust', 3), t('leg-curl', 2), t('calf-raise', 2)] },
     ],

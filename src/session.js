@@ -12,12 +12,12 @@ export function buildEntry(s, ex, opts = {}, plan = currentPlan(s)) {
   const hist = historyFor(s.sessions, ex.id);
   const inc = incFor(s, ex);
   const range = repRange(ex, opts, plan);
-  const rx = prescribe(ex, hist, plan, { range, inc, bodyWeight: s.settings.bodyWeight });
+  const rx = prescribe(ex, hist, plan, { range, inc, bodyWeight: s.settings.bodyWeight, today: isoDate() });
   const count = setsFor(opts.sets || 3, plan);
   const work = Array.from({ length: count }, () => ({ w: null, r: null, rir: null, done: false }));
   const warm = s.settings.showWarmups ? warmups(ex, rx.w, { unit: s.settings.unit, inc }).map(x => ({ w: x.w, r: x.r, rir: null, done: false, warmup: true })) : [];
   return {
-    uid: uid(), exId: ex.id, name: ex.name, primary: ex.primary, secondary: ex.secondary || [], type: ex.type, inc,
+    uid: uid(), exId: ex.id, name: ex.name, primary: ex.primary, secondary: ex.secondary || [], type: ex.type, equipment: ex.equipment, inc,
     rest: (opts.rest || ex.rest || 90) + (isMain(ex) ? plan.restBonus : 0), rx, hint: null, note: '', sets: [...warm, ...work],
   };
 }
@@ -80,7 +80,8 @@ export function toggleSet(exUid, idx, vals) {
     const sug = suggested(ex);
     const w = num(vals.w) ?? set.w ?? (set.warmup ? set.w : sug.w);
     const r = num(vals.r) ?? set.r ?? (set.warmup ? set.r : sug.r);
-    if (!r || r <= 0 || (ex.type !== 'bodyweight' && (w == null || w < 0))) return;
+    if (!r || r <= 0) { result = { ok: false, msg: 'Enter the reps first' }; return; }
+    if (ex.type !== 'bodyweight' && (w == null || w < 0)) { result = { ok: false, msg: 'Enter the weight first' }; return; }
     set.w = w ?? 0; set.r = r;
     if (!set.warmup) set.rir = num(vals.rir) ?? set.rir ?? ex.rx.rir;
     set.done = true;
